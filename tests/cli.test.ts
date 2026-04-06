@@ -23,6 +23,9 @@ describe('CLI', () => {
 
     expect(output).toContain('workspace-maxxing');
     expect(output).toContain('--opencode');
+    expect(output).toContain('--claude');
+    expect(output).toContain('--copilot');
+    expect(output).toContain('--gemini');
   });
 
   it('shows help when --help flag is provided', () => {
@@ -49,16 +52,57 @@ describe('CLI', () => {
     ).toBe(true);
   });
 
+  it('installs to claude path when --claude flag is provided', () => {
+    const cliPath = path.join(__dirname, '..', 'dist', 'index.js');
+    const output = execSync(`node "${cliPath}" --claude`, {
+      cwd: tempDir,
+      encoding: 'utf-8',
+      env: { ...process.env, WORKSPACE_MAXXING_TEMPLATES: path.join(__dirname, '..', 'templates') },
+    });
+
+    expect(output).toContain('claude');
+    expect(
+      fs.existsSync(path.join(tempDir, '.claude', 'skills', 'SKILL.md')),
+    ).toBe(true);
+  });
+
+  it('installs to copilot path when --copilot flag is provided', () => {
+    const cliPath = path.join(__dirname, '..', 'dist', 'index.js');
+    const output = execSync(`node "${cliPath}" --copilot`, {
+      cwd: tempDir,
+      encoding: 'utf-8',
+      env: { ...process.env, WORKSPACE_MAXXING_TEMPLATES: path.join(__dirname, '..', 'templates') },
+    });
+
+    expect(output).toContain('copilot');
+    expect(
+      fs.existsSync(path.join(tempDir, '.github', 'copilot-instructions', 'SKILL.md')),
+    ).toBe(true);
+  });
+
+  it('installs to gemini path when --gemini flag is provided', () => {
+    const cliPath = path.join(__dirname, '..', 'dist', 'index.js');
+    const output = execSync(`node "${cliPath}" --gemini`, {
+      cwd: tempDir,
+      encoding: 'utf-8',
+      env: { ...process.env, WORKSPACE_MAXXING_TEMPLATES: path.join(__dirname, '..', 'templates') },
+    });
+
+    expect(output).toContain('gemini');
+    expect(
+      fs.existsSync(path.join(tempDir, '.gemini', 'skills', 'SKILL.md')),
+    ).toBe(true);
+  });
+
   it('errors on unsupported flag', () => {
     try {
-      execSync('node dist/index.js --claude', {
+      execSync('node dist/index.js --unknown-flag', {
         cwd: path.join(__dirname, '..'),
         encoding: 'utf-8',
         stdio: ['pipe', 'pipe', 'pipe'],
       });
       fail('Should have thrown');
     } catch (error) {
-      // Expected — --claude not yet supported
       expect(true).toBe(true);
     }
   });
