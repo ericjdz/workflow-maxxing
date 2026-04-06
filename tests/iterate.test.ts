@@ -187,4 +187,33 @@ describe('iterate', () => {
       expect(result.failed).toBeGreaterThan(0);
     });
   });
+
+  describe('benchmark integration', () => {
+    it('includes benchmark data in result', () => {
+      const ws = createBasicWorkspace();
+      (validate.validateWorkspace as jest.Mock).mockReturnValue({
+        passed: true,
+        checks: [],
+      });
+
+      const result = iterateWorkspace(ws, { maxRetries: 1 });
+
+      expect(result.benchmark).toBeDefined();
+      expect(result.benchmark?.stages.length).toBeGreaterThan(0);
+      expect(result.benchmark?.weightedScore).toBeGreaterThanOrEqual(0);
+      expect(result.benchmark?.weightedScore).toBeLessThanOrEqual(100);
+    });
+
+    it('passes agent flag to benchmark result', () => {
+      const ws = createBasicWorkspace();
+      (validate.validateWorkspace as jest.Mock).mockReturnValue({
+        passed: true,
+        checks: [],
+      });
+
+      const result = iterateWorkspace(ws, { maxRetries: 1, agent: 'claude' });
+
+      expect(result.benchmark?.agent).toBe('claude');
+    });
+  });
 });

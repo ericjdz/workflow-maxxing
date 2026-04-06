@@ -66,6 +66,26 @@ Creates test cases for each stage (sample, edge-case, empty).
 node scripts/generate-tests.ts --workspace ./workspace --output ./tests.json
 ```
 
+### benchmark.ts — Weighted Benchmark Scoring
+
+Runs weighted benchmark scoring on a workspace.
+
+```bash
+node scripts/benchmark.ts --workspace ./workspace
+```
+
+**Weights:**
+- `01-ideation`: 1.5x (core thinking quality)
+- `02-research`: 1.3x (evidence gathering)
+- `03-architecture`: 1.2x (structural decisions)
+- All other stages: 1.0x
+
+**Output:**
+- Console: Formatted table with stage scores and suggestions
+- JSON: Saved to `.workspace-benchmarks/<workspace>-<timestamp>.json`
+
+The `iterate.ts` script includes benchmark data in its return value. Use the `improvementPotential` field to decide whether to continue iterating.
+
 ## Process
 
 1. CAPTURE INTENT — Ask: "What workflow do you want to automate?"

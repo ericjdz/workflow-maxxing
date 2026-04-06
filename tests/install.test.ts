@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { installSkill, detectProjectRoot } from '../src/install';
+import { installSkill, detectProjectRoot, getAgentTargetPath } from '../src/install';
 
 describe('install', () => {
   let tempDir: string;
@@ -99,6 +99,46 @@ describe('install', () => {
       expect(result2.success).toBe(true);
       const skillPath = path.join(projectDir, '.agents', 'skills', 'workspace-maxxing', 'SKILL.md');
       expect(fs.existsSync(skillPath)).toBe(true);
+    });
+  });
+
+  describe('getAgentTargetPath', () => {
+    it('returns default path for no agent', () => {
+      const result = getAgentTargetPath('/project-root', undefined);
+      expect(result).toBe(path.join('/project-root', '.agents', 'skills', 'workspace-maxxing'));
+    });
+
+    it('returns opencode path for --opencode flag', () => {
+      const result = getAgentTargetPath('/project-root', 'opencode');
+      expect(result).toBe(path.join('/project-root', '.agents', 'skills', 'workspace-maxxing'));
+    });
+
+    it('returns claude path for --claude flag', () => {
+      const result = getAgentTargetPath('/project-root', 'claude');
+      expect(result).toBe(path.join('/project-root', '.claude', 'skills'));
+    });
+
+    it('returns copilot path for --copilot flag', () => {
+      const result = getAgentTargetPath('/project-root', 'copilot');
+      expect(result).toBe(path.join('/project-root', '.github', 'copilot-instructions'));
+    });
+
+    it('returns gemini path for --gemini flag', () => {
+      const result = getAgentTargetPath('/project-root', 'gemini');
+      expect(result).toBe(path.join('/project-root', '.gemini', 'skills'));
+    });
+
+    it('installs to claude path when agent is claude', async () => {
+      const projectDir = path.join(tempDir, 'my-project');
+      fs.mkdirSync(projectDir, { recursive: true });
+      fs.writeFileSync(path.join(projectDir, 'package.json'), '{}');
+
+      const templatesDir = path.join(__dirname, '..', 'templates');
+      const result = await installSkill(projectDir, templatesDir, 'claude');
+
+      expect(result.success).toBe(true);
+      expect(result.skillPath).toContain('.claude');
+      expect(fs.existsSync(path.join(projectDir, '.claude', 'skills', 'SKILL.md'))).toBe(true);
     });
   });
 });
