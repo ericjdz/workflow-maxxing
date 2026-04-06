@@ -51,6 +51,8 @@ describe('Integration', () => {
       'scripts/scaffold.ts',
       'scripts/validate.ts',
       'scripts/install-tool.ts',
+      'scripts/iterate.ts',
+      'scripts/generate-tests.ts',
     ];
 
     for (const file of expectedFiles) {
@@ -70,6 +72,9 @@ describe('Integration', () => {
     expect(skillContent).toContain('scaffold.ts');
     expect(skillContent).toContain('validate.ts');
     expect(skillContent).toContain('install-tool.ts');
+    expect(skillContent).toContain('## Autonomous Iteration');
+    expect(skillContent).toContain('iterate.ts');
+    expect(skillContent).toContain('generate-tests.ts');
 
     // Verify SYSTEM.md has Layer 0 content
     const systemContent = fs.readFileSync(path.join(skillDir, '.workspace-templates', 'SYSTEM.md'), 'utf-8');
