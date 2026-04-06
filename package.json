@@ -13,11 +13,11 @@
     "prepublishOnly": "npm run build"
   },
   "keywords": ["ai-agent", "workspace", "skill", "opencode", "icm"],
-  "author": "",
+  "author": "Eric Julian Deguzman <ericjuliandeguzman77@gmail.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/YOUR_USERNAME/workspace-maxxing"
+    "url": "https://github.com/ericjdz/workflow-maxxing"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
