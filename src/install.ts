@@ -1,10 +1,24 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+export type AgentTarget = 'opencode' | 'claude' | 'copilot' | 'gemini' | undefined;
+
 export interface InstallResult {
   success: boolean;
   skillPath: string;
   error?: string;
+}
+
+const AGENT_PATHS: Record<string, string> = {
+  opencode: '.agents/skills/workspace-maxxing',
+  claude: '.claude/skills',
+  copilot: '.github/copilot-instructions',
+  gemini: '.gemini/skills',
+};
+
+export function getAgentTargetPath(projectRoot: string, agent: AgentTarget): string {
+  const relativePath = AGENT_PATHS[agent ?? 'opencode'];
+  return path.join(projectRoot, relativePath);
 }
 
 /**
@@ -55,13 +69,14 @@ function copyDirSync(src: string, dest: string): void {
 
 /**
  * Install the workspace-maxxing skill into a project.
- * Copies SKILL.md, .workspace-templates/, and scripts/ to .agents/skills/workspace-maxxing/
+ * Copies SKILL.md, .workspace-templates/, and scripts/ to the agent-specific skill directory.
  */
 export async function installSkill(
   projectRoot: string,
   templatesDir: string,
+  agent: AgentTarget = undefined,
 ): Promise<InstallResult> {
-  const skillDir = path.join(projectRoot, '.agents', 'skills', 'workspace-maxxing');
+  const skillDir = getAgentTargetPath(projectRoot, agent);
 
   try {
     // Copy SKILL.md

@@ -1,9 +1,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { validateWorkspace } from './validate';
+import { calculateBenchmark, BenchmarkResult } from './benchmark';
 
 export interface IterateOptions {
   maxRetries?: number;
+  agent?: string;
 }
 
 export interface ValidatePassResult {
@@ -30,6 +32,7 @@ export interface IterateResult {
     score: ScorePassResult;
     checklist: ChecklistResult;
   };
+  benchmark?: BenchmarkResult;
   escalate: boolean;
 }
 
@@ -46,12 +49,14 @@ export function iterateWorkspace(
   workspacePath: string,
   options: IterateOptions = {},
 ): IterateResult {
-  const { maxRetries = 3 } = options;
+  const { maxRetries = 3, agent = 'unknown' } = options;
   const ws = path.resolve(workspacePath);
 
   const validateResult = runValidatePass(ws, maxRetries);
   const scoreResult = runScorePass(ws);
   const checklistResult = runChecklist(ws);
+  const benchmarkResult = calculateBenchmark(ws);
+  benchmarkResult.agent = agent;
 
   const result: IterateResult = {
     passes: {
@@ -59,6 +64,7 @@ export function iterateWorkspace(
       score: scoreResult,
       checklist: checklistResult,
     },
+    benchmark: benchmarkResult,
     escalate: validateResult.status === 'escalated',
   };
 
