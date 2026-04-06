@@ -48,6 +48,9 @@ describe('Integration', () => {
       '.workspace-templates/workspace/02-process/CONTEXT.md',
       '.workspace-templates/workspace/03-output/CONTEXT.md',
       '.workspace-templates/workspace/README.md',
+      'scripts/scaffold.ts',
+      'scripts/validate.ts',
+      'scripts/install-tool.ts',
     ];
 
     for (const file of expectedFiles) {
@@ -63,6 +66,10 @@ describe('Integration', () => {
     expect(skillContent).toContain('## Process');
     expect(skillContent).toContain('## ICM Rules');
     expect(skillContent).toContain('## Output Format');
+    expect(skillContent).toContain('## Available Scripts');
+    expect(skillContent).toContain('scaffold.ts');
+    expect(skillContent).toContain('validate.ts');
+    expect(skillContent).toContain('install-tool.ts');
 
     // Verify SYSTEM.md has Layer 0 content
     const systemContent = fs.readFileSync(path.join(skillDir, '.workspace-templates', 'SYSTEM.md'), 'utf-8');
