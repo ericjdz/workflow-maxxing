@@ -11,6 +11,17 @@ export interface DispatchReport {
   nextSkill: string;
 }
 
+export interface ParallelInvocation {
+  skill: string;
+  batchId: number;
+  testCaseId: string;
+}
+
+export interface ParallelDispatchResult extends DispatchReport {
+  batchId: number;
+  testCaseId: string;
+}
+
 const SKILL_NEXT_MAP: Record<string, string> = {
   research: 'architecture',
   architecture: 'none',
@@ -19,6 +30,8 @@ const SKILL_NEXT_MAP: Record<string, string> = {
   testing: 'iteration',
   iteration: 'none',
   tooling: 'none',
+  worker: 'validation',
+  fixer: 'validation',
 };
 
 export function dispatchSkill(skillName: string, skillsDir: string): DispatchReport {
@@ -53,6 +66,20 @@ export function dispatchSkill(skillName: string, skillsDir: string): DispatchRep
   };
 }
 
+export function dispatchParallel(
+  invocations: ParallelInvocation[],
+  skillsDir: string,
+): ParallelDispatchResult[] {
+  return invocations.map((inv) => {
+    const report = dispatchSkill(inv.skill, skillsDir);
+    return {
+      ...report,
+      batchId: inv.batchId,
+      testCaseId: inv.testCaseId,
+    };
+  });
+}
+
 if (require.main === module) {
   const args = process.argv.slice(2);
   const parseArg = (flag: string): string | undefined => {
@@ -62,16 +89,38 @@ if (require.main === module) {
 
   const skill = parseArg('--skill');
   const workspace = parseArg('--workspace');
-
-  if (!skill) {
-    console.error('Usage: node dispatch.ts --skill <name> --workspace <path>');
-    process.exit(1);
-  }
+  const batchId = parseArg('--batch-id');
+  const parallel = args.includes('--parallel');
+  const invocationsPath = parseArg('--invocations');
 
   const skillsDir = workspace
     ? path.join(workspace, '.agents', 'skills', 'workspace-maxxing', 'skills')
     : path.join(process.cwd(), 'skills');
 
-  const result = dispatchSkill(skill, skillsDir);
-  console.log(JSON.stringify(result, null, 2));
+  if (parallel) {
+    if (!invocationsPath) {
+      console.error('--parallel requires --invocations <path>');
+      process.exit(1);
+    }
+
+    const parsed = JSON.parse(fs.readFileSync(invocationsPath, 'utf-8'));
+    if (!Array.isArray(parsed)) {
+      console.error('--invocations must point to a JSON array');
+      process.exit(1);
+    }
+
+    const results = dispatchParallel(parsed as ParallelInvocation[], skillsDir);
+    console.log(JSON.stringify(results, null, 2));
+  } else {
+    if (!skill) {
+      console.error('Usage: node dispatch.ts --skill <name> --workspace <path> [--batch-id <n>] [--parallel --invocations <path>]');
+      process.exit(1);
+    }
+
+    const result = dispatchSkill(skill, skillsDir);
+    const output = batchId
+      ? { ...result, batchId: parseInt(batchId, 10) }
+      : result;
+    console.log(JSON.stringify(output, null, 2));
+  }
 }

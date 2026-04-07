@@ -56,10 +56,47 @@ describe('scaffold', () => {
       scaffoldWorkspace(options);
 
       const contextMd = fs.readFileSync(path.join(outputDir, 'CONTEXT.md'), 'utf-8');
-      expect(contextMd).toContain('## Routing Table');
+      expect(contextMd).toContain('## Task Routing');
       expect(contextMd).toContain('01-research');
       expect(contextMd).toContain('02-analysis');
       expect(contextMd).toContain('03-report');
+    });
+
+    it('creates robust SYSTEM.md sections for workflow-following prompts', () => {
+      const outputDir = path.join(tempDir, 'workspace');
+      scaffoldWorkspace({
+        name: 'research',
+        stages: ['01-research', '02-analysis', '03-report'],
+        output: outputDir,
+      });
+
+      const systemMd = fs.readFileSync(path.join(outputDir, 'SYSTEM.md'), 'utf-8');
+      expect(systemMd).toContain('## Role');
+      expect(systemMd).toContain('## Folder Map');
+      expect(systemMd).toContain('## Workflow Rules');
+      expect(systemMd).toContain('## Stage Boundaries');
+      expect(systemMd).toContain('## Tooling Policy');
+    });
+
+    it('creates robust root CONTEXT.md routing and loading order', () => {
+      const outputDir = path.join(tempDir, 'workspace');
+      scaffoldWorkspace({
+        name: 'research',
+        stages: ['01-research', '02-analysis', '03-report'],
+        output: outputDir,
+      });
+
+      const contextMd = fs.readFileSync(path.join(outputDir, 'CONTEXT.md'), 'utf-8');
+      expect(contextMd).toContain('## How to Use This File');
+      expect(contextMd).toContain('## Task Routing');
+      expect(contextMd).toContain('## Loading Order');
+      expect(contextMd).toContain('## Stage Handoff Routing');
+      expect(contextMd).toContain('## Escalation');
+
+      expect(contextMd).toContain('01-research/CONTEXT.md');
+      expect(contextMd).toContain('02-analysis/CONTEXT.md');
+      expect(contextMd).toContain('03-report/CONTEXT.md');
+      expect(contextMd).toContain('SYSTEM.md');
     });
 
     it('creates numbered stage folders with CONTEXT.md', () => {
@@ -78,6 +115,36 @@ describe('scaffold', () => {
         const contextMd = fs.readFileSync(path.join(stageDir, 'CONTEXT.md'), 'utf-8');
         expect(contextMd.trim().length).toBeGreaterThan(0);
         expect(contextMd).toContain(stage);
+      }
+    });
+
+    it('creates stage CONTEXT.md files with completion and handoff contracts', () => {
+      const outputDir = path.join(tempDir, 'workspace');
+      const stages = ['01-research', '02-analysis', '03-report'];
+
+      scaffoldWorkspace({
+        name: 'research',
+        stages,
+        output: outputDir,
+      });
+
+      for (let i = 0; i < stages.length; i++) {
+        const stage = stages[i];
+        const nextStage = stages[i + 1];
+        const stageContext = fs.readFileSync(path.join(outputDir, stage, 'CONTEXT.md'), 'utf-8');
+
+        expect(stageContext).toContain('## Purpose');
+        expect(stageContext).toContain('## Inputs');
+        expect(stageContext).toContain('## Outputs');
+        expect(stageContext).toContain('## Dependencies');
+        expect(stageContext).toContain('## Completion Criteria');
+        expect(stageContext).toContain('## Handoff');
+
+        if (nextStage) {
+          expect(stageContext).toContain(nextStage);
+        } else {
+          expect(stageContext.toLowerCase()).toContain('final output');
+        }
       }
     });
 

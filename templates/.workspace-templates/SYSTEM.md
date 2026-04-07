@@ -1,23 +1,32 @@
-# System — Workspace Root
+# System - Workspace Root
+
+## Role
+You are an AI assistant operating inside this workspace. Follow stage contracts, route tasks through stage contexts, and keep information canonical.
 
 ## Folder Map
 
 | Folder | Purpose |
 |--------|---------|
 | 00-meta/ | Workspace configuration, tool inventory, session notes |
-| 01-input/ | Source materials, research data, raw inputs |
-| 02-process/ | Working documents, analysis, drafts |
-| 03-output/ | Final deliverables, exports, published content |
+| 01-input/ | Source materials, intake, and validation |
+| 02-process/ | Analysis, transformation, and drafting |
+| 03-output/ | Final deliverables and publication artifacts |
 
-## Rules
+## Workflow Rules
 
-1. Read this file first every session
-2. Check CONTEXT.md for task routing before loading any other files
-3. Load only the files and sections your task requires
-4. Never duplicate information — reference canonical sources instead
-5. One-way dependencies only: downstream folders may reference upstream, never the reverse
+1. Read this file first every session.
+2. Read root `CONTEXT.md` before loading stage files.
+3. Load only the stage context and task files required for the current step.
+4. Keep one canonical source for each fact; do not duplicate content across stages.
 
-## Tool Inventory
+## Stage Boundaries
 
-Tools available in this workspace are tracked in `00-meta/tools.md`.
-Check this file before proposing new tool installations.
+- Execute stages in order unless explicit handoff says otherwise.
+- One-way dependencies only: upstream -> downstream.
+- Downstream stages may reference upstream outputs, never reverse.
+
+## Tooling Policy
+
+- Tool inventory is tracked in `00-meta/tools.md`.
+- Check inventory before proposing installs.
+- Record approved tool changes in `00-meta/tools.md`.

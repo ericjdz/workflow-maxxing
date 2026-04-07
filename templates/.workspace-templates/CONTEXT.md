@@ -2,21 +2,31 @@
 
 ## How to Use This File
 
-This file maps tasks to workspaces. Read the task description, find the matching entry, and load only the files listed.
+Map each task to the smallest required context and avoid loading unrelated files.
 
 ## Task Routing
 
 | When you need to... | Go to | Load |
 |---------------------|-------|------|
-| Understand workspace structure | SYSTEM.md | Always loaded |
-| Gather inputs or research | 01-input/CONTEXT.md | Stage-specific routing |
-| Process, analyze, or draft | 02-process/CONTEXT.md | Stage-specific routing |
-| Produce final output | 03-output/CONTEXT.md | Stage-specific routing |
+| Understand workspace constraints | SYSTEM.md | Always loaded first |
+| Gather or validate inputs | 01-input/CONTEXT.md | Input stage contract |
+| Analyze, process, or draft | 02-process/CONTEXT.md | Processing stage contract |
+| Finalize and deliver outputs | 03-output/CONTEXT.md | Output stage contract |
 | Check available tools | 00-meta/tools.md | Tool inventory |
 
 ## Loading Order
 
 1. SYSTEM.md (always)
-2. This file (once per session)
-3. The relevant workspace CONTEXT.md
-4. Only the content files your task needs
+2. This root CONTEXT.md
+3. One relevant stage CONTEXT.md
+4. Only the task files needed for that stage
+
+## Stage Handoff Routing
+
+- 01-input -> 02-process when input completion criteria are met
+- 02-process -> 03-output when processing completion criteria are met
+- 03-output -> delivery and closure
+
+## Escalation
+
+Escalate when required sections are missing, routing is ambiguous, or dependencies conflict with stage order.

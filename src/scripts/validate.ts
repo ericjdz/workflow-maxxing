@@ -12,9 +12,35 @@ export interface ValidationResult {
   checks: CheckResult[];
 }
 
+const REQUIRED_SYSTEM_HEADINGS = [
+  '## Role',
+  '## Folder Map',
+  '## Workflow Rules',
+  '## Stage Boundaries',
+  '## Tooling Policy',
+];
+
+const REQUIRED_ROOT_CONTEXT_HEADINGS = [
+  '## How to Use This File',
+  '## Task Routing',
+  '## Loading Order',
+  '## Stage Handoff Routing',
+  '## Escalation',
+];
+
+const REQUIRED_STAGE_CONTEXT_HEADINGS = [
+  '## Purpose',
+  '## Inputs',
+  '## Outputs',
+  '## Dependencies',
+  '## Completion Criteria',
+  '## Handoff',
+];
+
 export function validateWorkspace(workspacePath: string): ValidationResult {
   const ws = path.resolve(workspacePath);
   const checks: CheckResult[] = [];
+  const numberedFolders = getNumberedStageFolders(ws);
 
   const systemMdPath = path.join(ws, 'SYSTEM.md');
   const systemExists = fs.existsSync(systemMdPath);
@@ -32,12 +58,22 @@ export function validateWorkspace(workspacePath: string): ValidationResult {
       passed: hasFolderMap,
       message: hasFolderMap ? 'Found' : 'Missing "folder map" reference',
     });
+
+    addRequiredHeadingChecks('SYSTEM.md', systemContent, REQUIRED_SYSTEM_HEADINGS, checks);
   } else {
     checks.push({
       name: 'SYSTEM.md contains folder map',
       passed: false,
       message: 'Cannot check — SYSTEM.md missing',
     });
+
+    for (const heading of REQUIRED_SYSTEM_HEADINGS) {
+      checks.push({
+        name: `SYSTEM.md contains ${heading}`,
+        passed: false,
+        message: `Cannot check - SYSTEM.md missing`,
+      });
+    }
   }
 
   const contextMdPath = path.join(ws, 'CONTEXT.md');
@@ -48,10 +84,49 @@ export function validateWorkspace(workspacePath: string): ValidationResult {
     message: contextExists ? 'Found' : 'Missing',
   });
 
-  const entries = fs.readdirSync(ws, { withFileTypes: true });
-  const numberedFolders = entries
-    .filter((e) => e.isDirectory() && /^\d/.test(e.name))
-    .map((e) => e.name);
+  if (contextExists) {
+    const contextContent = fs.readFileSync(contextMdPath, 'utf-8');
+    addRequiredHeadingChecks('CONTEXT.md', contextContent, REQUIRED_ROOT_CONTEXT_HEADINGS, checks);
+
+    const allReferenced = numberedFolders.every((folder) => contextContent.includes(`${folder}/CONTEXT.md`));
+    checks.push({
+      name: 'Root routing references all numbered stages',
+      passed: allReferenced,
+      message: allReferenced ? 'All numbered stages are routed' : 'Missing one or more numbered stage routes',
+    });
+
+    const enforcesSelectiveLoading =
+      /## Loading Order/i.test(contextContent)
+      && /SYSTEM\.md/i.test(contextContent)
+      && /Only the task files needed/i.test(contextContent);
+
+    checks.push({
+      name: 'Root loading order enforces selective loading',
+      passed: enforcesSelectiveLoading,
+      message: enforcesSelectiveLoading
+        ? 'Selective loading guidance found'
+        : 'Loading order lacks selective-loading guidance',
+    });
+  } else {
+    for (const heading of REQUIRED_ROOT_CONTEXT_HEADINGS) {
+      checks.push({
+        name: `CONTEXT.md contains ${heading}`,
+        passed: false,
+        message: 'Cannot check - CONTEXT.md missing',
+      });
+    }
+
+    checks.push({
+      name: 'Root routing references all numbered stages',
+      passed: false,
+      message: 'Cannot check - CONTEXT.md missing',
+    });
+    checks.push({
+      name: 'Root loading order enforces selective loading',
+      passed: false,
+      message: 'Cannot check - CONTEXT.md missing',
+    });
+  }
 
   for (const folder of numberedFolders) {
     const contextPath = path.join(ws, folder, 'CONTEXT.md');
@@ -69,6 +144,32 @@ export function validateWorkspace(workspacePath: string): ValidationResult {
         name: `${folder}/CONTEXT.md is not empty`,
         passed: notEmpty,
         message: notEmpty ? `${content.trim().length} chars` : 'File is empty',
+      });
+
+      addRequiredHeadingChecks(`${folder}/CONTEXT.md`, content, REQUIRED_STAGE_CONTEXT_HEADINGS, checks);
+
+      const deps = extractStageRefs(extractDependenciesSection(content));
+      const currentNum = parseInt(folder.slice(0, 2), 10);
+      const pointsToLaterStage = deps.some((dep) => parseInt(dep.slice(0, 2), 10) > currentNum);
+
+      checks.push({
+        name: `${folder} dependencies do not point to later stages`,
+        passed: !pointsToLaterStage,
+        message: !pointsToLaterStage ? 'Dependency direction valid' : 'Found dependency on later-numbered stage',
+      });
+    } else {
+      for (const heading of REQUIRED_STAGE_CONTEXT_HEADINGS) {
+        checks.push({
+          name: `${folder}/CONTEXT.md contains ${heading}`,
+          passed: false,
+          message: 'Cannot check - CONTEXT.md missing',
+        });
+      }
+
+      checks.push({
+        name: `${folder} dependencies do not point to later stages`,
+        passed: false,
+        message: 'Cannot check - CONTEXT.md missing',
       });
     }
   }
@@ -105,6 +206,30 @@ function getAllMarkdownFiles(dir: string): string[] {
   }
 
   return results;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function hasHeading(content: string, heading: string): boolean {
+  return new RegExp(`^${escapeRegExp(heading)}\\s*$`, 'im').test(content);
+}
+
+function addRequiredHeadingChecks(
+  fileLabel: string,
+  content: string,
+  headings: string[],
+  checks: CheckResult[],
+): void {
+  for (const heading of headings) {
+    const found = hasHeading(content, heading);
+    checks.push({
+      name: `${fileLabel} contains ${heading}`,
+      passed: found,
+      message: found ? 'Found' : `Missing ${heading}`,
+    });
+  }
 }
 
 function checkDuplicateContent(files: string[]): CheckResult {
@@ -146,6 +271,30 @@ function checkDuplicateContent(files: string[]): CheckResult {
     passed: true,
     message: 'No duplicates found',
   };
+}
+
+function getNumberedStageFolders(workspacePath: string): string[] {
+  const entries = fs.readdirSync(workspacePath, { withFileTypes: true });
+  return entries
+    .filter((entry) => entry.isDirectory() && /^\d{2}-/.test(entry.name) && entry.name !== '00-meta')
+    .map((entry) => entry.name);
+}
+
+function extractDependenciesSection(content: string): string {
+  const match = content.match(/## Dependencies\s*([\s\S]*?)(?=\n##\s|$)/i);
+  return match ? match[1] : '';
+}
+
+function extractStageRefs(content: string): string[] {
+  const refs = new Set<string>();
+  const regex = /(\d{2}-[A-Za-z0-9-_]+)/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(content)) !== null) {
+    refs.add(match[1]);
+  }
+
+  return Array.from(refs);
 }
 
 if (require.main === module) {

@@ -42,7 +42,7 @@ export function scaffoldWorkspace(options: ScaffoldOptions): void {
     fs.mkdirSync(stageDir, { recursive: true });
     fs.writeFileSync(
       path.join(stageDir, 'CONTEXT.md'),
-      generateStageContextMd(name, stage),
+      generateStageContextMd(name, stage, stages),
     );
   }
 
@@ -52,51 +52,119 @@ export function scaffoldWorkspace(options: ScaffoldOptions): void {
 }
 
 function generateSystemMd(name: string, stages: string[]): string {
+  const folderRows = stages
+    .map((stage, index) => `| ${index + 1} | \`${stage}/\` | ${stageDescription(stage)} |`)
+    .join('\n');
+
   return `# ${name} — System Prompt
 
 ## Role
-You are an AI assistant working within the ${name} workspace.
+You are an AI assistant operating inside the ${name} workspace. Follow stage boundaries and route tasks through stage-specific CONTEXT files.
 
 ## Folder Map
 
-${stages.map((s) => `- \`${s}/\` — ${stageDescription(s)}`).join('\n')}
-- \`00-meta/\` — Metadata and tool inventory
+| Stage | Folder | Purpose |
+|------:|--------|---------|
+${folderRows}
+| meta | \`00-meta/\` | Workspace configuration, tool inventory, and session notes |
 
-## Rules
-- Follow ICM methodology: canonical sources, one-way dependencies, selective loading
-- Each numbered folder is a workflow stage with its own CONTEXT.md for routing
-- Do not create content outside the defined structure
+## Workflow Rules
+1. Read \`SYSTEM.md\` first, then root \`CONTEXT.md\`.
+2. Load only one stage \`CONTEXT.md\` at a time unless handoff explicitly requires another stage.
+3. Keep information canonical; do not duplicate facts across files.
+4. Maintain one-way stage dependencies from earlier stage numbers to later stage numbers.
+
+## Stage Boundaries
+- Each numbered folder is an execution stage.
+- A stage may consume upstream outputs but must not redefine upstream facts.
+- Cross-stage jumps require explicit routing through root \`CONTEXT.md\`.
+
+## Tooling Policy
+- Check \`00-meta/tools.md\` before proposing tool installation.
+- Document approved tooling changes in \`00-meta/tools.md\`.
 `;
 }
 
 function generateContextMd(name: string, stages: string[]): string {
+  const routingRows = stages
+    .map((stage) => `| Work in ${stage} tasks | \`${stage}/CONTEXT.md\` | Stage contract and required outputs |`)
+    .join('\n');
+
+  const handoffs = stages
+    .map((stage, index) => {
+      const nextStage = stages[index + 1];
+      return nextStage
+        ? `- \`${stage}\` -> \`${nextStage}\` when completion criteria are met`
+        : `- \`${stage}\` -> deliver final output and close loop`;
+    })
+    .join('\n');
+
   return `# ${name} — Context Router
 
-## Routing Table
+## How to Use This File
+Use this file to route each task to the smallest required context scope.
 
-${stages.map((s) => `- \`${s}/\` → \`${s}/CONTEXT.md\``).join('\n')}
-- \`00-meta/\` → \`00-meta/tools.md\`
+## Task Routing
+This routing table maps task intent to the correct stage context.
 
-## How to Use
-When working on a task, load only the CONTEXT.md for the relevant stage.
-Do not load the entire workspace. Route to specific sections.
+| When you need to... | Load | Why |
+|---------------------|------|-----|
+| Understand workspace constraints | \`SYSTEM.md\` | Global rules and stage boundaries |
+${routingRows}
+| Check available tools | \`00-meta/tools.md\` | Tool inventory and approval status |
+
+## Loading Order
+1. \`SYSTEM.md\` (always)
+2. This root \`CONTEXT.md\`
+3. One relevant stage \`CONTEXT.md\`
+4. Only the task files needed for that stage
+
+## Stage Handoff Routing
+${handoffs}
+
+## Escalation
+Escalate when required sections are missing, dependencies are contradictory, or no valid stage route can satisfy the task.
 `;
 }
 
-function generateStageContextMd(name: string, stage: string): string {
+function generateStageContextMd(name: string, stage: string, stages: string[]): string {
+  const stageIndex = stages.indexOf(stage);
+  const previousStage = stageIndex > 0 ? stages[stageIndex - 1] : undefined;
+  const nextStage = stageIndex >= 0 && stageIndex < stages.length - 1
+    ? stages[stageIndex + 1]
+    : undefined;
+
+  const dependencyLine = previousStage
+    ? `- ${previousStage}`
+    : '- None (entry stage)';
+
+  const handoffLine = nextStage
+    ? `- After completion, hand off outputs to ${nextStage}`
+    : '- This is the terminal stage. Package and deliver final output.';
+
   return `# ${stage} — Context
 
 ## Purpose
-This folder handles the ${stage} stage of the ${name} workflow.
+This folder executes the ${stage} stage of the ${name} workflow.
 
 ## Inputs
-- Define what inputs this stage expects
+- Required data artifacts for ${stage}
+- Upstream context from previous stage when applicable
 
 ## Outputs
-- Define what outputs this stage produces
+- Stage-specific deliverables for downstream consumption
+- Updated artifacts needed by the next stage
 
 ## Dependencies
-- List upstream stages this stage depends on
+${dependencyLine}
+
+## Completion Criteria
+- Required outputs are produced and non-empty
+- Outputs conform to stage purpose and expected format
+- Handoff notes are updated for downstream stage
+
+## Handoff
+${handoffLine}
 `;
 }
 
