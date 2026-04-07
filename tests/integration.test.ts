@@ -64,17 +64,23 @@ describe('Integration', () => {
 
     // Verify SKILL.md has required sections
     const skillContent = fs.readFileSync(path.join(skillDir, 'SKILL.md'), 'utf-8');
-    expect(skillContent).toContain('## Role');
-    expect(skillContent).toContain('## Process');
+    expect(skillContent).toContain('## Overview');
+    expect(skillContent).toContain('## When to Use');
+    expect(skillContent).toContain('## The Iron Law');
+    expect(skillContent).toContain('## Hybrid Flow');
+    expect(skillContent).toContain('## Sub-Skill Dispatch');
+    expect(skillContent).toContain('## Available Scripts');
+    expect(skillContent).toContain('## Anti-Rationalization Table');
+    expect(skillContent).toContain('## Integration');
     expect(skillContent).toContain('## ICM Rules');
     expect(skillContent).toContain('## Output Format');
-    expect(skillContent).toContain('## Available Scripts');
     expect(skillContent).toContain('scaffold.ts');
     expect(skillContent).toContain('validate.ts');
     expect(skillContent).toContain('install-tool.ts');
-    expect(skillContent).toContain('## Autonomous Iteration');
+    expect(skillContent).toContain('dispatch.ts');
     expect(skillContent).toContain('iterate.ts');
     expect(skillContent).toContain('generate-tests.ts');
+    expect(skillContent).toContain('benchmark.ts');
 
     // Verify SYSTEM.md has Layer 0 content
     const systemContent = fs.readFileSync(path.join(skillDir, '.workspace-templates', 'SYSTEM.md'), 'utf-8');

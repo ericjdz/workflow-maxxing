@@ -41,8 +41,14 @@ describe('Template files', () => {
     const content = fs.readFileSync(skillPath, 'utf-8');
 
     expect(content).toContain('# Workspace-Maxxing');
-    expect(content).toContain('## Role');
-    expect(content).toContain('## Process');
+    expect(content).toContain('## Overview');
+    expect(content).toContain('## When to Use');
+    expect(content).toContain('## The Iron Law');
+    expect(content).toContain('## Hybrid Flow');
+    expect(content).toContain('## Sub-Skill Dispatch');
+    expect(content).toContain('## Available Scripts');
+    expect(content).toContain('## Anti-Rationalization Table');
+    expect(content).toContain('## Integration');
     expect(content).toContain('## ICM Rules');
     expect(content).toContain('## Output Format');
   });
@@ -69,5 +75,24 @@ describe('Template files', () => {
 
     expect(content).toContain('routing');
     expect(content).toContain('workspace');
+  });
+
+  it('SKILL.md has YAML frontmatter with name and description', () => {
+    const skillPath = path.join(templatesDir, 'SKILL.md');
+    const content = fs.readFileSync(skillPath, 'utf-8');
+    expect(content).toMatch(/^---\nname:/m);
+    expect(content).toMatch(/description:/);
+  });
+
+  it('SKILL.md references all 7 sub-skills', () => {
+    const skillPath = path.join(templatesDir, 'SKILL.md');
+    const content = fs.readFileSync(skillPath, 'utf-8');
+    expect(content).toContain('validation');
+    expect(content).toContain('research');
+    expect(content).toContain('prompt-engineering');
+    expect(content).toContain('testing');
+    expect(content).toContain('iteration');
+    expect(content).toContain('architecture');
+    expect(content).toContain('tooling');
   });
 });
