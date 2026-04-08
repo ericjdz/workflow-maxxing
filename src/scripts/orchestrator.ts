@@ -6,6 +6,7 @@ export interface OrchestratorConfig {
   maxFixRetries?: number;
   scoreThreshold?: number;
   workerTimeout?: number;
+  subagentRunner?: string;
 }
 
 export interface BatchReport {
@@ -32,6 +33,7 @@ export const DEFAULT_CONFIG: Required<OrchestratorConfig> = {
   maxFixRetries: 3,
   scoreThreshold: 85,
   workerTimeout: 300,
+  subagentRunner: '',
 };
 
 const CONFIG_LIMITS = {
@@ -41,7 +43,7 @@ const CONFIG_LIMITS = {
   workerTimeout: { min: 1, max: 3600 },
 } as const;
 
-type ConfigKey = keyof Required<OrchestratorConfig>;
+type ConfigKey = keyof typeof CONFIG_LIMITS;
 
 interface WorkerInvocation {
   skill: string;
@@ -70,7 +72,17 @@ interface GeneratedTestCasesResult {
   testCases: unknown[];
 }
 
-type DispatchParallelFn = (invocations: WorkerInvocation[], skillsDir: string) => WorkerResult[];
+interface DispatchParallelOptions {
+  workspacePath?: string;
+  runnerCommand?: string;
+  runnerTimeoutSeconds?: number;
+}
+
+type DispatchParallelFn = (
+  invocations: WorkerInvocation[],
+  skillsDir: string,
+  options?: DispatchParallelOptions,
+) => WorkerResult[];
 type CalculateBenchmarkFn = (workspacePath: string) => BenchmarkSummary;
 
 interface TimedDispatchOutcome {
@@ -94,6 +106,7 @@ function resolveConfig(config: OrchestratorConfig): Required<OrchestratorConfig>
     maxFixRetries: validateIntegerConfig('maxFixRetries', config.maxFixRetries ?? DEFAULT_CONFIG.maxFixRetries),
     scoreThreshold: validateIntegerConfig('scoreThreshold', config.scoreThreshold ?? DEFAULT_CONFIG.scoreThreshold),
     workerTimeout: validateIntegerConfig('workerTimeout', config.workerTimeout ?? DEFAULT_CONFIG.workerTimeout),
+    subagentRunner: (config.subagentRunner ?? '').trim(),
   };
 }
 
@@ -102,9 +115,10 @@ function dispatchWithTimeout(
   invocations: WorkerInvocation[],
   skillsDir: string,
   workerTimeoutSeconds: number,
+  dispatchOptions: DispatchParallelOptions,
 ): TimedDispatchOutcome {
   const startedAtMs = Date.now();
-  const results = dispatchParallel(invocations, skillsDir);
+  const results = dispatchParallel(invocations, skillsDir, dispatchOptions);
   const elapsedMs = Date.now() - startedAtMs;
   const timeoutMs = workerTimeoutSeconds * 1000;
 
@@ -208,9 +222,8 @@ export function runBatchLifecycle(
   const ws = path.resolve(workspacePath);
   const iterationDir = path.join(ws, '.agents', 'iteration');
   fs.mkdirSync(iterationDir, { recursive: true });
-
   const { generateTestCases } = require('./generate-tests') as {
-    generateTestCases: (workspacePath: string) => GeneratedTestCasesResult;
+    generateTestCases: (workspacePath: string, outputPath?: string) => GeneratedTestCasesResult;
   };
   const { dispatchParallel } = require('./dispatch') as {
     dispatchParallel: DispatchParallelFn;
@@ -219,8 +232,38 @@ export function runBatchLifecycle(
     calculateBenchmark: CalculateBenchmarkFn;
   };
 
-  const testCasesResult = generateTestCases(ws);
-  const testCaseIds = testCasesResult.testCases.map((_: unknown, i: number) => `tc-${String(i + 1).padStart(3, '0')}`);
+  const testCasesResultPath = path.join(iterationDir, 'test-cases.json');
+  // Prefer agent-produced test-cases if already present; otherwise generate fallback
+  let testCasesResultRaw: any = null;
+  if (fs.existsSync(testCasesResultPath)) {
+    try {
+      testCasesResultRaw = JSON.parse(fs.readFileSync(testCasesResultPath, 'utf-8'));
+    } catch (e) {
+      const emsg = (e && (e as any).message) ? (e as any).message : String(e);
+      throw new Error(`Failed to parse existing test-cases.json: ${emsg}`);
+    }
+  } else {
+    const generated = generateTestCases(ws);
+    fs.writeFileSync(testCasesResultPath, JSON.stringify(generated, null, 2));
+    testCasesResultRaw = generated;
+  }
+
+  // Normalize to array of test-case ids. Support either { testCases: [...] } or direct array.
+  let testCaseIds: string[] = [];
+  if (Array.isArray(testCasesResultRaw)) {
+    // items may be objects with id or raw payloads
+    testCaseIds = testCasesResultRaw.map((tc: any, i: number) => (tc && tc.id) ? String(tc.id) : `tc-${String(i + 1).padStart(3, '0')}`);
+  } else if (testCasesResultRaw && Array.isArray(testCasesResultRaw.testCases)) {
+    testCaseIds = testCasesResultRaw.testCases.map((tc: any, i: number) => (tc && tc.id) ? String(tc.id) : `tc-${String(i + 1).padStart(3, '0')}`);
+  } else {
+    throw new Error('test-cases.json must be an array or an object with a testCases array');
+  }
+
+  const dispatchOptions: DispatchParallelOptions = {
+    workspacePath: ws,
+    runnerCommand: resolvedConfig.subagentRunner || undefined,
+    runnerTimeoutSeconds: resolvedConfig.workerTimeout,
+  };
 
   const batches = splitIntoBatches(testCaseIds, resolvedConfig.batchSize);
 
@@ -246,6 +289,7 @@ export function runBatchLifecycle(
       invocations,
       skillsDir,
       resolvedConfig.workerTimeout,
+      dispatchOptions,
     );
     const workerResults = workerDispatch.results;
 
@@ -273,6 +317,7 @@ export function runBatchLifecycle(
         batchScore,
         dispatchParallel,
         calculateBenchmark,
+        dispatchOptions,
         workerDispatch.timedOut
           ? [`Worker timeout exceeded (${resolvedConfig.workerTimeout}s) during worker dispatch`]
           : [],
@@ -305,7 +350,9 @@ export function runBatchLifecycle(
         testCases: batchTestCases,
         score: batchScore,
         status: 'passed',
-        findings: ['Batch passed threshold'],
+        findings: resolvedConfig.subagentRunner
+          ? ['Batch passed threshold']
+          : ['Batch passed threshold', 'Dispatch mode: simulated (configure --subagent-runner for external sub-agents)'],
         timestamp: new Date().toISOString(),
       });
     }
@@ -346,6 +393,7 @@ function runFixLoop(
   initialScore: number,
   dispatchParallel: DispatchParallelFn,
   calculateBenchmark: CalculateBenchmarkFn,
+  dispatchOptions: DispatchParallelOptions,
   initialFindings: string[] = [],
 ): FixLoopResult {
   const findings: string[] = [...initialFindings];
@@ -385,6 +433,7 @@ function runFixLoop(
       fixInvocations,
       skillsDir,
       workerTimeout,
+      dispatchOptions,
     );
     const fixResults = fixDispatch.results;
     currentResults = mergeWorkerResults(currentResults, fixResults);
@@ -426,9 +475,10 @@ if (require.main === module) {
   const scoreThresholdStr = parseArg('--score-threshold');
   const maxFixRetriesStr = parseArg('--max-fix-retries');
   const workerTimeoutStr = parseArg('--worker-timeout');
+  const subagentRunner = parseArg('--subagent-runner') ?? process.env.WORKSPACE_MAXXING_SUBAGENT_RUNNER;
 
   if (!workspace) {
-    console.error('Usage: node orchestrator.ts --workspace <path> [--batch-size <n>] [--score-threshold <n>] [--max-fix-retries <n>] [--worker-timeout <s>]');
+    console.error('Usage: node orchestrator.ts --workspace <path> [--batch-size <n>] [--score-threshold <n>] [--max-fix-retries <n>] [--worker-timeout <s>] [--subagent-runner <command>]');
     process.exit(1);
   }
 
@@ -443,6 +493,7 @@ if (require.main === module) {
     if (scoreThreshold !== undefined) config.scoreThreshold = scoreThreshold;
     if (maxFixRetries !== undefined) config.maxFixRetries = maxFixRetries;
     if (workerTimeout !== undefined) config.workerTimeout = workerTimeout;
+    if (subagentRunner) config.subagentRunner = subagentRunner;
 
     const summary = runBatchLifecycle(workspace, config);
     console.log(JSON.stringify(summary, null, 2));

@@ -18,6 +18,7 @@ export function generateTestCases(
 ): TestCasesOutput {
   const ws = path.resolve(workspacePath);
   const testCases: TestCase[] = [];
+  const workspaceDomain = detectWorkspaceDomain(ws);
 
   const stageFolders = getNumberedFolders(ws);
 
@@ -39,14 +40,14 @@ export function generateTestCases(
     testCases.push({
       stage,
       type: 'sample',
-      input: generateSampleInput(stage, purpose),
+      input: generateSampleInput(stage, purpose, workspaceDomain),
       expected: `Stage should fulfill its purpose: ${purpose || 'handle stage-specific processing'}`,
     });
 
     testCases.push({
       stage,
       type: 'edge-case',
-      input: generateEdgeCaseInput(stage),
+      input: generateEdgeCaseInput(stage, workspaceDomain),
       expected: `Stage should handle edge case gracefully`,
     });
 
@@ -68,7 +69,17 @@ export function generateTestCases(
   return result;
 }
 
-function generateSampleInput(stage: string, purpose: string): string {
+function generateSampleInput(stage: string, purpose: string, domain: string): string {
+  if (domain === 'sports-prediction') {
+    const sportsSamples: Record<string, string> = {
+      '01-input': 'Barcelona vs Real Madrid next match prediction request with team form and injury notes',
+      '02-process': 'UCL finals winner prediction using recent xG, head-to-head history, and squad availability',
+      '03-output': 'Liverpool vs Arsenal game prediction with confidence score and rationale summary',
+    };
+
+    return sportsSamples[stage] || `Sports match outcome prediction scenario for ${stage}`;
+  }
+
   const samples: Record<string, string> = {
     '01-input': 'A sample input document with valid data for processing',
     '02-process': 'Processed data from the input stage ready for transformation',
@@ -77,13 +88,48 @@ function generateSampleInput(stage: string, purpose: string): string {
   return samples[stage] || `Sample data for ${stage}`;
 }
 
-function generateEdgeCaseInput(stage: string): string {
+function generateEdgeCaseInput(stage: string, domain: string): string {
+  if (domain === 'sports-prediction') {
+    const sportsEdgeCases: Record<string, string> = {
+      '01-input': 'Barcelona vs Real Madrid request missing kickoff date and missing expected league context',
+      '02-process': 'UCL finals winner scenario with conflicting bookmaker odds and incomplete player availability data',
+      '03-output': 'Liverpool vs Arsenal prediction where confidence exceeds bounds and explanation is inconsistent',
+    };
+
+    return sportsEdgeCases[stage] || `Sports prediction edge case data for ${stage}`;
+  }
+
   const edgeCases: Record<string, string> = {
     '01-input': 'Input with special characters: <>&"\' and very long text that exceeds normal length expectations',
     '02-process': 'Data with missing fields and inconsistent formatting',
     '03-output': 'Conflicting output requirements from upstream stages',
   };
   return edgeCases[stage] || `Edge case data for ${stage}`;
+}
+
+function detectWorkspaceDomain(workspacePath: string): string {
+  const filesToScan = ['SYSTEM.md', 'CONTEXT.md'];
+  const textChunks: string[] = [];
+
+  for (const fileName of filesToScan) {
+    const filePath = path.join(workspacePath, fileName);
+    if (fs.existsSync(filePath)) {
+      textChunks.push(fs.readFileSync(filePath, 'utf-8'));
+    }
+  }
+
+  const stageFolders = getNumberedFolders(workspacePath);
+  for (const stage of stageFolders) {
+    const contextPath = path.join(workspacePath, stage, 'CONTEXT.md');
+    if (fs.existsSync(contextPath)) {
+      textChunks.push(fs.readFileSync(contextPath, 'utf-8'));
+    }
+  }
+
+  const corpus = textChunks.join('\n').toLowerCase();
+  const sportsPredictionMatch = /(football|soccer|ucl|champions league|match prediction|sports prediction|game prediction)/i.test(corpus);
+
+  return sportsPredictionMatch ? 'sports-prediction' : 'generic';
 }
 
 function getNumberedFolders(workspacePath: string): string[] {

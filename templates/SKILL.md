@@ -29,6 +29,21 @@ NO BUILD WITHOUT PLAN
 NO PLAN WITHOUT RESEARCH
 NO IMPROVEMENT WITHOUT VALIDATION
 NO COMPLETION CLAIM WITHOUT VERIFICATION
+NO PRODUCT IMPLEMENTATION INSIDE WORKSPACE BUILDING MODE
+NO STAGE SKIPPING ACROSS NUMBERED WORKFLOW FOLDERS
+
+## Scope Guardrails
+
+- This skill builds an ICM workflow workspace, not the end-product application.
+- Keep outputs as file-structured markdown workflow artifacts in numbered stage folders.
+- Do not generate backend/frontend/runtime code for the target domain while running this skill.
+- If a user asks for product implementation details, capture them as workflow requirements and continue building the workspace structure.
+
+## Sequential Enforcement
+
+- Follow numbered stage folders in strict order; do not jump ahead.
+- Use 00-meta/execution-log.md as the source of truth for stage completion state.
+- A later stage is blocked until the previous stage is checked complete with evidence notes.
 
 ## Hybrid Flow
 
@@ -58,13 +73,13 @@ Phase 6: DELIVER
 The orchestrator manages batched parallel sub-agent execution:
 
 ```bash
-node scripts/orchestrator.ts --workspace ./workspace --batch-size 3 --score-threshold 85
+node scripts/orchestrator.ts --workspace ./workspace --batch-size 3 --score-threshold 85 --subagent-runner "<your-runner-command>"
 ```
 
 **Flow:**
 1. Generate test cases from workspace stages
 2. Split into batches (default 3 per batch)
-3. Dispatch worker sub-agents in parallel for each batch
+3. Dispatch worker sub-agents in parallel for each batch (external runner mode)
 4. Validate batch outputs with benchmark scoring
 5. If batch score < threshold and failing test cases exist -> dispatch fixer sub-agents -> re-validate (max 3 retries)
 6. If score remains < threshold and no actionable failing test cases exist -> mark batch failed/escalated
@@ -75,6 +90,13 @@ node scripts/orchestrator.ts --workspace ./workspace --batch-size 3 --score-thre
 - `--score-threshold <n>` - Minimum batch score to pass (default: 85)
 - `--max-fix-retries <n>` - Max fix attempts per batch (default: 3)
 - `--worker-timeout <s>` - Worker timeout in seconds (default: 300)
+- `--subagent-runner <command>` - External command template used to execute worker/fixer sub-agents; supports placeholders `{skill}`, `{workspace}`, `{batchId}`, `{testCaseId}`
+
+## Sub-Agent Iteration Contract
+
+- True sub-agent mode requires `--subagent-runner` (or `WORKSPACE_MAXXING_SUBAGENT_RUNNER`) so worker/fixer test cases execute outside the orchestrator process.
+- Without a runner command, iteration falls back to simulated dispatch and should be treated as a dry-run.
+- Batch artifacts must include generated test cases, per-test-case reports, and summary evidence under `.agents/iteration/`.
 
 ## Sub-Skill Dispatch
 
@@ -84,7 +106,7 @@ node scripts/orchestrator.ts --workspace ./workspace --batch-size 3 --score-thre
 | After research complete | `architecture` | `node scripts/dispatch.ts --skill architecture --workspace ./workspace` |
 | After architecture approved | (use scaffold.ts) | `node scripts/scaffold.ts --name "<name>" --stages "<stages>" --output ./workspace` |
 | After building | `validation` | `node scripts/dispatch.ts --skill validation --workspace ./workspace` |
-| Running autonomous iteration | (use orchestrator.ts) | `node scripts/orchestrator.ts --workspace ./workspace` |
+| Running autonomous iteration | (use orchestrator.ts) | `node scripts/orchestrator.ts --workspace ./workspace --subagent-runner "<runner>"` |
 | Worker execution | `worker` | `node scripts/dispatch.ts --skill worker --workspace ./workspace --batch-id <N>` |
 | Fix loop | `fixer` | `node scripts/dispatch.ts --skill fixer --workspace ./workspace --batch-id <N>` |
 | Manual condition loop only (not orchestrator batch loop): score < 85 due to prompt quality | `prompt-engineering` | `node scripts/dispatch.ts --skill prompt-engineering --workspace ./workspace` |
@@ -99,7 +121,7 @@ node scripts/orchestrator.ts --workspace ./workspace --batch-size 3 --score-thre
 Runs the full batched parallel sub-agent workflow.
 
 ```bash
-node scripts/orchestrator.ts --workspace ./workspace --batch-size 3 --score-threshold 85
+node scripts/orchestrator.ts --workspace ./workspace --batch-size 3 --score-threshold 85 --subagent-runner "<runner>"
 ```
 
 ### scaffold.ts - Generate ICM Workspace
@@ -187,7 +209,7 @@ node scripts/dispatch.ts --skill <name> --workspace ./workspace [--batch-id <N>]
 - Numbered folders for workflow stages
 
 ## Output Format
-- workspace/ - the built workspace
+- workspace/ - the built markdown-first workflow workspace
 - .agents/skills/<workspace-name>/ - installable skill
 - USAGE.md - how to use this workspace in future sessions
 - .agents/iteration/summary.json - autonomous iteration results

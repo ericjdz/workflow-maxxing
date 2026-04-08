@@ -35,6 +35,7 @@ export function scaffoldWorkspace(options: ScaffoldOptions): void {
   const metaDir = path.join(outputDir, '00-meta');
   fs.mkdirSync(metaDir, { recursive: true });
   fs.writeFileSync(path.join(metaDir, 'tools.md'), generateToolsMd());
+  fs.writeFileSync(path.join(metaDir, 'execution-log.md'), generateExecutionLogMd(stages));
   fs.writeFileSync(path.join(metaDir, 'CONTEXT.md'), `# 00-meta Context\n\nMetadata and tool inventory for the ${name} workspace.\n`);
 
   for (const stage of stages) {
@@ -73,6 +74,16 @@ ${folderRows}
 2. Load only one stage \`CONTEXT.md\` at a time unless handoff explicitly requires another stage.
 3. Keep information canonical; do not duplicate facts across files.
 4. Maintain one-way stage dependencies from earlier stage numbers to later stage numbers.
+
+## Scope Guardrails
+- Build and maintain workflow documentation, not product implementation code.
+- Keep stage outputs as markdown artifacts (plans, checklists, prompts, routing notes).
+- If asked to build the product itself, capture that request as workflow requirements and stay in ICM workspace scope.
+
+## Sequential Execution Protocol
+1. Complete stages strictly in ascending numeric order.
+2. Record stage completion in \`00-meta/execution-log.md\` before moving to the next stage.
+3. Do not produce final deliverables until all prior stage checkboxes are complete.
 
 ## Stage Boundaries
 - Each numbered folder is an execution stage.
@@ -119,6 +130,16 @@ ${routingRows}
 3. One relevant stage \`CONTEXT.md\`
 4. Only the task files needed for that stage
 
+## Scope Guardrails
+- Route domain requests into workflow design steps and markdown deliverables.
+- Do not scaffold backend, frontend, or runtime product source files from this router.
+- Keep outputs file-structured and markdown-first across numbered workflow folders.
+
+## Sequential Routing Contract
+- Route only to the earliest incomplete stage in \`00-meta/execution-log.md\`.
+- Refuse jumps to later stages when earlier stages are not marked complete.
+- Append handoff notes for each completed stage before routing onward.
+
 ## Stage Handoff Routing
 ${handoffs}
 
@@ -153,14 +174,18 @@ This folder executes the ${stage} stage of the ${name} workflow.
 
 ## Outputs
 - Stage-specific deliverables for downstream consumption
-- Updated artifacts needed by the next stage
+- Updated markdown artifacts needed by the next stage
 
 ## Dependencies
 ${dependencyLine}
 
+## Required Evidence
+- Update \`00-meta/execution-log.md\` to mark ${stage} complete before handoff.
+- Link or reference the markdown artifacts produced in this stage.
+
 ## Completion Criteria
 - Required outputs are produced and non-empty
-- Outputs conform to stage purpose and expected format
+- Outputs conform to stage purpose and markdown-first workflow format
 - Handoff notes are updated for downstream stage
 
 ## Handoff
@@ -183,6 +208,24 @@ List tools that are proposed but not yet approved.
 `;
 }
 
+function generateExecutionLogMd(stages: string[]): string {
+  return `# Execution Log
+
+## Stage Checklist
+
+${stages.map((stage) => `- [ ] ${stage}`).join('\n')}
+
+## Rules
+
+1. Mark a stage complete only after its completion criteria are satisfied.
+2. Stages must be checked in ascending numerical order.
+3. Every checked stage must have corresponding evidence notes.
+
+## Evidence Notes
+
+${stages.map((stage) => `### ${stage}\n- Artifacts:\n- Handoff Summary:\n`).join('\n')}`;
+}
+
 function generateReadmeMd(name: string, stages: string[]): string {
   return `# ${name} Workspace
 
@@ -195,8 +238,9 @@ ${stages.map((s) => `- \`${s}/\``).join('\n')}
 
 1. Follow the workflow stages in order
 2. Load CONTEXT.md files selectively — only what you need
-3. Update tools.md when installing new tools
-4. Run validate.ts to check ICM compliance
+3. Update 00-meta/execution-log.md after each completed stage
+4. Keep outputs in stage folders as markdown workflow artifacts
+5. Run validate.ts to check ICM compliance
 `;
 }
 

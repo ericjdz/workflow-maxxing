@@ -81,7 +81,7 @@ Run these from the installed skill directory (for example, `.agents/skills/works
 | `validate.ts` | Validate workspace structure and routing rules | `node scripts/validate.ts --workspace ./workspace` |
 | `generate-tests.ts` | Generate stage-based test cases | `node scripts/generate-tests.ts --workspace ./workspace --output ./tests.json` |
 | `dispatch.ts` | Dispatch sub-skills (single or parallel) | `node scripts/dispatch.ts --skill research --workspace ./workspace` |
-| `orchestrator.ts` | Run batched autonomous iteration | `node scripts/orchestrator.ts --workspace ./workspace --batch-size 3 --score-threshold 85` |
+| `orchestrator.ts` | Run batched autonomous iteration | `node scripts/orchestrator.ts --workspace ./workspace --batch-size 3 --score-threshold 85 --subagent-runner "<runner>"` |
 | `benchmark.ts` | Compute weighted benchmark score | `node scripts/benchmark.ts --workspace ./workspace` |
 | `install-tool.ts` | Install a tool and update inventory | `node scripts/install-tool.ts --tool "pdf-lib" --manager npm --workspace ./workspace` |
 | `iterate.ts` | Legacy single-loop iteration path | `node scripts/iterate.ts --workspace ./workspace --max-retries 3` |

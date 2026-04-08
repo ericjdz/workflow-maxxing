@@ -16,6 +16,8 @@ const REQUIRED_SYSTEM_HEADINGS = [
   '## Role',
   '## Folder Map',
   '## Workflow Rules',
+  '## Scope Guardrails',
+  '## Sequential Execution Protocol',
   '## Stage Boundaries',
   '## Tooling Policy',
 ];
@@ -24,6 +26,8 @@ const REQUIRED_ROOT_CONTEXT_HEADINGS = [
   '## How to Use This File',
   '## Task Routing',
   '## Loading Order',
+  '## Scope Guardrails',
+  '## Sequential Routing Contract',
   '## Stage Handoff Routing',
   '## Escalation',
 ];
@@ -33,9 +37,29 @@ const REQUIRED_STAGE_CONTEXT_HEADINGS = [
   '## Inputs',
   '## Outputs',
   '## Dependencies',
+  '## Required Evidence',
   '## Completion Criteria',
   '## Handoff',
 ];
+
+const DISALLOWED_STAGE_SOURCE_EXTENSIONS = new Set([
+  '.ts',
+  '.tsx',
+  '.js',
+  '.jsx',
+  '.py',
+  '.java',
+  '.go',
+  '.rs',
+  '.cs',
+  '.cpp',
+  '.c',
+  '.rb',
+  '.php',
+  '.swift',
+  '.kt',
+  '.scala',
+]);
 
 export function validateWorkspace(workspacePath: string): ValidationResult {
   const ws = path.resolve(workspacePath);
@@ -128,6 +152,63 @@ export function validateWorkspace(workspacePath: string): ValidationResult {
     });
   }
 
+  const executionLogPath = path.join(ws, '00-meta', 'execution-log.md');
+  const executionLogExists = fs.existsSync(executionLogPath);
+  checks.push({
+    name: '00-meta/execution-log.md exists',
+    passed: executionLogExists,
+    message: executionLogExists ? 'Found' : 'Missing',
+  });
+
+  if (executionLogExists) {
+    const executionLogContent = fs.readFileSync(executionLogPath, 'utf-8');
+    const hasStageChecklistHeading = /## Stage Checklist/i.test(executionLogContent);
+    checks.push({
+      name: 'Execution log contains stage checklist heading',
+      passed: hasStageChecklistHeading,
+      message: hasStageChecklistHeading ? 'Found' : 'Missing "## Stage Checklist" heading',
+    });
+
+    const hasAllStageChecklistEntries = numberedFolders.every((folder) => {
+      const pattern = new RegExp(`^\\s*-\\s*\\[[ xX]\\]\\s+${escapeRegExp(folder)}\\s*$`, 'm');
+      return pattern.test(executionLogContent);
+    });
+    checks.push({
+      name: 'Execution log references all numbered stages',
+      passed: hasAllStageChecklistEntries,
+      message: hasAllStageChecklistEntries
+        ? 'All numbered stages are present in checklist'
+        : 'Missing one or more numbered stage checklist entries',
+    });
+
+    const sequentialOrderValid = hasAllStageChecklistEntries
+      ? isExecutionChecklistSequential(executionLogContent, numberedFolders)
+      : false;
+    checks.push({
+      name: 'Execution log stage completion order is sequential',
+      passed: sequentialOrderValid,
+      message: sequentialOrderValid
+        ? 'Stage completion order is sequential'
+        : 'Found later stage marked complete before earlier stage',
+    });
+  } else {
+    checks.push({
+      name: 'Execution log contains stage checklist heading',
+      passed: false,
+      message: 'Cannot check - execution log missing',
+    });
+    checks.push({
+      name: 'Execution log references all numbered stages',
+      passed: false,
+      message: 'Cannot check - execution log missing',
+    });
+    checks.push({
+      name: 'Execution log stage completion order is sequential',
+      passed: false,
+      message: 'Cannot check - execution log missing',
+    });
+  }
+
   for (const folder of numberedFolders) {
     const contextPath = path.join(ws, folder, 'CONTEXT.md');
     const exists = fs.existsSync(contextPath);
@@ -172,11 +253,84 @@ export function validateWorkspace(workspacePath: string): ValidationResult {
         message: 'Cannot check - CONTEXT.md missing',
       });
     }
+
+    const disallowedFiles = findDisallowedStageSourceFiles(path.join(ws, folder));
+    checks.push({
+      name: `${folder} contains no product source code files`,
+      passed: disallowedFiles.length === 0,
+      message: disallowedFiles.length === 0
+        ? 'Only workflow documentation artifacts found'
+        : `Found source files: ${disallowedFiles.join(', ')}`,
+    });
   }
 
   const allFiles = getAllMarkdownFiles(ws);
   const duplicateCheck = checkDuplicateContent(allFiles);
   checks.push(duplicateCheck);
+
+  // Agent-driven test-case enforcement (default)
+  const agentDrivenRequired = true;
+
+  checks.push({
+    name: 'Agent-driven test-case mode enforced',
+    passed: true,
+    message: 'Agent-driven mode is the default; validator requires .agents/iteration/test-cases.json',
+  });
+
+  if (agentDrivenRequired) {
+    const testCasesPath = path.join(ws, '.agents', 'iteration', 'test-cases.json');
+    const readyMarker = path.join(ws, '.agents', 'iteration', '.test-cases-ready');
+
+    const testCasesExists = fs.existsSync(testCasesPath);
+    checks.push({
+      name: '.agents/iteration/test-cases.json exists',
+      passed: testCasesExists,
+      message: testCasesExists ? 'Found' : 'Missing agent-generated test-cases file',
+    });
+
+    if (testCasesExists) {
+      try {
+        const raw = fs.readFileSync(testCasesPath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        const isArray = Array.isArray(parsed);
+        checks.push({
+          name: 'test-cases.json is a JSON array',
+          passed: isArray,
+          message: isArray ? `Contains ${parsed.length} case(s)` : 'Not an array',
+        });
+
+        if (isArray) {
+          const missingFields: string[] = [];
+          for (let i = 0; i < Math.min(parsed.length, 5); i++) {
+            const tc = parsed[i];
+            if (!tc || typeof tc !== 'object' || !tc.id || !tc.input || !tc.expected) {
+              missingFields.push(`item[${i}]`);
+            }
+          }
+
+          checks.push({
+            name: 'test-cases.json items have minimal fields',
+            passed: missingFields.length === 0,
+            message: missingFields.length === 0 ? 'Sample items valid' : `Missing fields in ${missingFields.join(', ')}`,
+          });
+        }
+      } catch (e) {
+        const emsg = (e && (e as any).message) ? (e as any).message : String(e);
+        checks.push({
+          name: 'test-cases.json parseable JSON',
+          passed: false,
+          message: `JSON parse error: ${emsg}`,
+        });
+      }
+    }
+
+    const readyExists = fs.existsSync(readyMarker);
+    checks.push({
+      name: '.agents/iteration/.test-cases-ready exists',
+      passed: readyExists,
+      message: readyExists ? 'Found' : 'Missing readiness marker file',
+    });
+  }
 
   const passed = checks.every((c) => c.passed);
 
@@ -295,6 +449,56 @@ function extractStageRefs(content: string): string[] {
   }
 
   return Array.from(refs);
+}
+
+function isExecutionChecklistSequential(content: string, stages: string[]): boolean {
+  let foundUncheckedStage = false;
+
+  for (const stage of stages) {
+    const pattern = new RegExp(`^\\s*-\\s*\\[([ xX])\\]\\s+${escapeRegExp(stage)}\\s*$`, 'm');
+    const match = content.match(pattern);
+    if (!match) {
+      return false;
+    }
+
+    const isChecked = match[1].toLowerCase() === 'x';
+    if (!isChecked) {
+      foundUncheckedStage = true;
+      continue;
+    }
+
+    if (foundUncheckedStage) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function findDisallowedStageSourceFiles(stageDir: string): string[] {
+  const disallowed: string[] = [];
+
+  const walk = (currentDir: string): void => {
+    const entries = fs.readdirSync(currentDir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const fullPath = path.join(currentDir, entry.name);
+
+      if (entry.isDirectory()) {
+        walk(fullPath);
+        continue;
+      }
+
+      const ext = path.extname(entry.name).toLowerCase();
+      if (DISALLOWED_STAGE_SOURCE_EXTENSIONS.has(ext)) {
+        disallowed.push(path.relative(stageDir, fullPath).replace(/\\/g, '/'));
+      }
+    }
+  };
+
+  walk(stageDir);
+
+  return disallowed;
 }
 
 if (require.main === module) {

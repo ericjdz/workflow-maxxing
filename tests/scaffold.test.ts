@@ -74,8 +74,11 @@ describe('scaffold', () => {
       expect(systemMd).toContain('## Role');
       expect(systemMd).toContain('## Folder Map');
       expect(systemMd).toContain('## Workflow Rules');
+      expect(systemMd).toContain('## Scope Guardrails');
+      expect(systemMd).toContain('## Sequential Execution Protocol');
       expect(systemMd).toContain('## Stage Boundaries');
       expect(systemMd).toContain('## Tooling Policy');
+      expect(systemMd.toLowerCase()).toContain('markdown');
     });
 
     it('creates robust root CONTEXT.md routing and loading order', () => {
@@ -90,6 +93,8 @@ describe('scaffold', () => {
       expect(contextMd).toContain('## How to Use This File');
       expect(contextMd).toContain('## Task Routing');
       expect(contextMd).toContain('## Loading Order');
+      expect(contextMd).toContain('## Scope Guardrails');
+      expect(contextMd).toContain('## Sequential Routing Contract');
       expect(contextMd).toContain('## Stage Handoff Routing');
       expect(contextMd).toContain('## Escalation');
 
@@ -97,6 +102,7 @@ describe('scaffold', () => {
       expect(contextMd).toContain('02-analysis/CONTEXT.md');
       expect(contextMd).toContain('03-report/CONTEXT.md');
       expect(contextMd).toContain('SYSTEM.md');
+      expect(contextMd.toLowerCase()).toContain('markdown');
     });
 
     it('creates numbered stage folders with CONTEXT.md', () => {
@@ -137,8 +143,11 @@ describe('scaffold', () => {
         expect(stageContext).toContain('## Inputs');
         expect(stageContext).toContain('## Outputs');
         expect(stageContext).toContain('## Dependencies');
+        expect(stageContext).toContain('## Required Evidence');
         expect(stageContext).toContain('## Completion Criteria');
         expect(stageContext).toContain('## Handoff');
+        expect(stageContext.toLowerCase()).toContain('markdown');
+        expect(stageContext).toContain('00-meta/execution-log.md');
 
         if (nextStage) {
           expect(stageContext).toContain(nextStage);
@@ -162,6 +171,12 @@ describe('scaffold', () => {
       expect(fs.existsSync(toolsMd)).toBe(true);
       const content = fs.readFileSync(toolsMd, 'utf-8');
       expect(content).toContain('## Tool Inventory');
+
+      const executionLogPath = path.join(outputDir, '00-meta', 'execution-log.md');
+      expect(fs.existsSync(executionLogPath)).toBe(true);
+      const executionLog = fs.readFileSync(executionLogPath, 'utf-8');
+      expect(executionLog).toContain('## Stage Checklist');
+      expect(executionLog).toContain('- [ ] 01-research');
     });
 
     it('creates README.md', () => {

@@ -19,6 +19,18 @@ You are an AI assistant operating inside this workspace. Follow stage contracts,
 3. Load only the stage context and task files required for the current step.
 4. Keep one canonical source for each fact; do not duplicate content across stages.
 
+## Scope Guardrails
+
+- Build workflow documentation, not product implementation code.
+- Keep stage outputs markdown-first (plans, checklists, prompts, routing notes).
+- If the user asks for product code, convert that into workflow requirements and stay inside ICM workspace scope.
+
+## Sequential Execution Protocol
+
+1. Complete stages in ascending numeric order.
+2. Record each completed stage in 00-meta/execution-log.md before routing onward.
+3. Do not generate final output until all prior stages are marked complete.
+
 ## Stage Boundaries
 
 - Execute stages in order unless explicit handoff says otherwise.

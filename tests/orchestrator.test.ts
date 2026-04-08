@@ -95,13 +95,21 @@ describe('orchestrator', () => {
     });
 
     it('runs full lifecycle and writes summary for passing batches', () => {
-      jest.spyOn(generateTests, 'generateTestCases').mockReturnValue({
-        testCases: [
-          { stage: '01-input', type: 'sample', input: 'a', expected: 'a' },
-          { stage: '02-output', type: 'sample', input: 'b', expected: 'b' },
-          { stage: '03-review', type: 'sample', input: 'c', expected: 'c' },
-          { stage: '04-wrap', type: 'sample', input: 'd', expected: 'd' },
-        ],
+      jest.spyOn(generateTests, 'generateTestCases').mockImplementation((workspacePath, outputPath) => {
+        const payload = {
+          testCases: [
+            { stage: '01-input', type: 'sample' as const, input: 'a', expected: 'a' },
+            { stage: '02-output', type: 'sample' as const, input: 'b', expected: 'b' },
+            { stage: '03-review', type: 'sample' as const, input: 'c', expected: 'c' },
+            { stage: '04-wrap', type: 'sample' as const, input: 'd', expected: 'd' },
+          ],
+        };
+
+        if (outputPath) {
+          fs.writeFileSync(outputPath, JSON.stringify(payload, null, 2));
+        }
+
+        return payload;
       });
 
       const dispatchSpy = jest.spyOn(dispatch, 'dispatchParallel').mockImplementation((invocations) => {
@@ -167,9 +175,63 @@ describe('orchestrator', () => {
       const summaryPath = path.join(tempDir, '.agents', 'iteration', 'summary.json');
       expect(fs.existsSync(summaryPath)).toBe(true);
 
+      const testCasesPath = path.join(tempDir, '.agents', 'iteration', 'test-cases.json');
+      expect(fs.existsSync(testCasesPath)).toBe(true);
+      const savedTestCases = JSON.parse(fs.readFileSync(testCasesPath, 'utf-8'));
+      expect(Array.isArray(savedTestCases.testCases)).toBe(true);
+      expect(savedTestCases.testCases).toHaveLength(4);
+
       const savedSummary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
       expect(savedSummary.totalBatches).toBe(2);
       expect(savedSummary.overallScore).toBe(90);
+    });
+
+    it('forwards sub-agent runner options to dispatch calls', () => {
+      jest.spyOn(generateTests, 'generateTestCases').mockReturnValue({
+        testCases: [
+          { stage: '01-input', type: 'sample', input: 'a', expected: 'a' },
+        ],
+      });
+
+      const dispatchSpy = jest.spyOn(dispatch, 'dispatchParallel').mockImplementation((invocations) => {
+        return invocations.map((inv) => ({
+          skill: inv.skill,
+          status: 'passed',
+          batchId: inv.batchId,
+          testCaseId: inv.testCaseId,
+          timestamp: '2026-04-07T00:00:00.000Z',
+          findings: [],
+          recommendations: ['continue'],
+          metrics: { latencyMs: 10 },
+          nextSkill: 'validation',
+        }));
+      });
+
+      jest.spyOn(benchmark, 'calculateBenchmark').mockReturnValue({
+        workspace: 'test',
+        agent: 'test-agent',
+        timestamp: '2026-04-07T00:00:00.000Z',
+        rawScore: 90,
+        weightedScore: 95,
+        stages: [],
+        fixSuggestions: [],
+        improvementPotential: false,
+      });
+
+      runBatchLifecycle(tempDir, {
+        batchSize: 1,
+        scoreThreshold: 85,
+        maxFixRetries: 1,
+        workerTimeout: 300,
+        subagentRunner: `${process.execPath} fake-runner.js {skill} {batchId} {testCaseId}`,
+      });
+
+      expect(dispatchSpy).toHaveBeenCalled();
+      expect(dispatchSpy.mock.calls[0][2]).toEqual(expect.objectContaining({
+        workspacePath: tempDir,
+        runnerCommand: `${process.execPath} fake-runner.js {skill} {batchId} {testCaseId}`,
+        runnerTimeoutSeconds: 300,
+      }));
     });
 
     it('uses worker timeout to treat long worker dispatch as failed and trigger fixer retry', () => {

@@ -31,6 +31,12 @@ describe('validate', () => {
       '## Workflow Rules',
       'Follow selective loading and canonical source rules.',
       '',
+      '## Scope Guardrails',
+      'Create markdown workflow artifacts only; do not implement product code in stage folders.',
+      '',
+      '## Sequential Execution Protocol',
+      'Complete stages in numerical order and record completion in 00-meta/execution-log.md.',
+      '',
       '## Stage Boundaries',
       'One-way dependencies only.',
       '',
@@ -54,6 +60,12 @@ describe('validate', () => {
       '2. CONTEXT.md',
       '3. Stage CONTEXT.md',
       '4. Only the task files needed',
+      '',
+      '## Scope Guardrails',
+      'Route domain requests into markdown workflow design outputs only.',
+      '',
+      '## Sequential Routing Contract',
+      'Never route directly to later stages before earlier stage completion is logged.',
       '',
       '## Stage Handoff Routing',
       '01-input -> 02-output',
@@ -82,6 +94,9 @@ describe('validate', () => {
       '## Dependencies',
       'None.',
       '',
+      '## Required Evidence',
+      '- Update 00-meta/execution-log.md for 01-input completion',
+      '',
       '## Completion Criteria',
       'Inputs validated.',
       '',
@@ -106,6 +121,9 @@ describe('validate', () => {
       '## Dependencies',
       '01-input.',
       '',
+      '## Required Evidence',
+      '- Update 00-meta/execution-log.md for 02-output completion',
+      '',
       '## Completion Criteria',
       'Output complete.',
       '',
@@ -117,6 +135,23 @@ describe('validate', () => {
     fs.mkdirSync(path.join(ws, '00-meta'), { recursive: true });
     fs.writeFileSync(path.join(ws, '00-meta', 'CONTEXT.md'), '# 00-meta\n\nMeta content.\n');
     fs.writeFileSync(path.join(ws, '00-meta', 'tools.md'), '# Tools\n\n| Tool | Version |\n|------|---------|\n');
+    fs.writeFileSync(path.join(ws, '00-meta', 'execution-log.md'), [
+      '# Execution Log',
+      '',
+      '## Stage Checklist',
+      '- [ ] 01-input',
+      '- [ ] 02-output',
+      '',
+    ].join('\n'));
+
+    // Agent-driven test-cases (required by validator)
+    const agentsIter = path.join(ws, '.agents', 'iteration');
+    fs.mkdirSync(agentsIter, { recursive: true });
+    const testCasesPayload = [
+      { id: 'tc-001', title: 'sample', input: { type: 'text', payload: 'a' }, expected: { matcher: 'equals', criteria: ['a'] }, metadata: { priority: 'high' } },
+    ];
+    fs.writeFileSync(path.join(agentsIter, 'test-cases.json'), JSON.stringify(testCasesPayload, null, 2));
+    fs.writeFileSync(path.join(agentsIter, '.test-cases-ready'), 'ready');
 
     return ws;
   }
@@ -181,6 +216,33 @@ describe('validate', () => {
       expect(result.passed).toBe(false);
       expect(result.checks.some((c) => c.name.includes('01-input/CONTEXT.md contains ## Completion Criteria') && !c.passed)).toBe(true);
       expect(result.checks.some((c) => c.name.includes('01-input/CONTEXT.md contains ## Handoff') && !c.passed)).toBe(true);
+    });
+
+    it('fails when execution log is missing', () => {
+      const ws = createValidWorkspace();
+      fs.unlinkSync(path.join(ws, '00-meta', 'execution-log.md'));
+
+      const result = validateWorkspace(ws);
+
+      expect(result.passed).toBe(false);
+      expect(result.checks.some((c) => c.name.includes('00-meta/execution-log.md exists') && !c.passed)).toBe(true);
+    });
+
+    it('fails when execution log marks later stage complete before earlier stage', () => {
+      const ws = createValidWorkspace();
+      fs.writeFileSync(path.join(ws, '00-meta', 'execution-log.md'), [
+        '# Execution Log',
+        '',
+        '## Stage Checklist',
+        '- [ ] 01-input',
+        '- [x] 02-output',
+        '',
+      ].join('\n'));
+
+      const result = validateWorkspace(ws);
+
+      expect(result.passed).toBe(false);
+      expect(result.checks.some((c) => c.name.includes('Execution log stage completion order is sequential') && !c.passed)).toBe(true);
     });
 
     it('fails when root routing misses a numbered stage folder', () => {
@@ -291,6 +353,16 @@ describe('validate', () => {
       expect(check?.passed).toBe(false);
     });
 
+    it('fails when numbered stage folders contain product source code files', () => {
+      const ws = createValidWorkspace();
+      fs.writeFileSync(path.join(ws, '01-input', 'predictor.py'), 'print("not markdown")\n');
+
+      const result = validateWorkspace(ws);
+
+      expect(result.passed).toBe(false);
+      expect(result.checks.some((c) => c.name.includes('contains no product source code files') && !c.passed)).toBe(true);
+    });
+
     it('returns structured output with all check names', () => {
       const ws = createValidWorkspace();
       const result = validateWorkspace(ws);
@@ -298,6 +370,16 @@ describe('validate', () => {
       const checkNames = result.checks.map((c) => c.name);
       expect(checkNames).toContain('SYSTEM.md exists');
       expect(checkNames).toContain('CONTEXT.md exists at root');
+    });
+
+    it('fails when agent-driven test-cases are missing', () => {
+      const ws = createValidWorkspace();
+      // remove agent-generated test-cases
+      fs.rmSync(path.join(ws, '.agents', 'iteration'), { recursive: true, force: true });
+
+      const result = validateWorkspace(ws);
+      expect(result.passed).toBe(false);
+      expect(result.checks.some((c) => c.name.includes('test-cases.json exists') && !c.passed)).toBe(true);
     });
   });
 });

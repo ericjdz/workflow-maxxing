@@ -37,6 +37,34 @@ NO CLAIMING FIX WITHOUT RE-VALIDATION
 6. **Write report.json** - Structured JSON with `{skill, status, timestamp, testCaseId, batchId, findings, fixesApplied, recommendations, metrics, nextSkill}`
 7. **Dispatch validation** - Signal that the fix is ready for re-validation
 
+## Agent-Driven Test-Case Generation (Required)
+
+- **Agent ownership:** Test-cases MUST be discovered and authored by an agent using the workspace context. Do not rely on hardcoded script-generated test cases.
+- **Where to write:** The agent must write the test-case bundle to `.agents/iteration/test-cases.json` inside the workspace before the orchestrator or validator dispatches workers. Validators and orchestrator flows will treat this file as the authoritative source of inputs for the iteration.
+- **Discovery guidance:** Agents should inspect repo files (SYSTEM.md, CONTEXT.md, stage CONTEXTs, user prompts, examples, and any domain files) to infer realistic inputs, edge cases, and acceptance criteria. Test-cases should reflect actual workspace intent and cover positive, negative, and boundary cases.
+- **Schema (minimal):** The file must be valid JSON and an array of objects with the following fields:
+
+```json
+[
+  {
+    "id": "tc-001",
+    "title": "Short descriptive title",
+    "input": {"type": "text", "payload": "..."},
+    "expected": {"criteria": ["..."], "matcher": "contains|equals|schema"},
+    "metadata": {"priority": "high|medium|low", "sourceHints": ["SYSTEM.md"]}
+  }
+]
+```
+
+- **Idempotence:** Agents may re-generate or refine the file across iterations, but each write must be complete (no partial artifacts) and timestamped inside the JSON if updated.
+- **Signal readiness:** After creating `.agents/iteration/test-cases.json` the agent should also write a single-line marker file `.agents/iteration/.test-cases-ready` to avoid race conditions with orchestrators reading stdout.
+
+## Enforcement Notes
+
+- **Validator contract:** The validation step is expected to check for `.agents/iteration/test-cases.json` when running in agent-driven mode and fail fast if missing or malformed. This ensures the orchestrator cannot fall back to hardcoded script cases.
+- **Orchestrator behavior:** When agent-driven mode is enabled, the orchestrator must prefer `.agents/iteration/test-cases.json` and should not call or rely on any built-in `generate-tests` script to produce authoritative inputs.
+- **Audit trail:** Agents should include a `generatedBy` and `timestamp` field in the test-cases file to aid debugging and reproducibility.
+
 ## Anti-Rationalization Table
 
 | Thought | Reality |

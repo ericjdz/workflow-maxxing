@@ -27,13 +27,20 @@ NO BUILDING WITHOUT APPROVED PLAN
 NO SKIPPING USER APPROVAL
 NO AMBIGUOUS STAGE DEFINITIONS
 
+## Scope Guardrails
+
+- Design only the ICM workspace architecture (folders, routing, context contracts).
+- Plan markdown workflow artifacts per stage; do not design application runtime components.
+- Keep architecture outputs directly consumable by scaffold.ts for file-structured markdown folders.
+- Treat product implementation asks as workflow requirements captured in stage docs.
+
 ## The Process
 
 1. **Review research findings** - Read the research sub-skill report.
-2. **Define stage folders** - Determine numbered folder structure (01-xxx, 02-xxx, and so on).
+2. **Define stage folders** - Determine numbered folder structure (01-xxx, 02-xxx, and so on) for workflow execution.
 3. **Design routing table** - Plan CONTEXT.md routing for each stage.
 4. **Define SYSTEM.md** - Plan the folder map, rules, and tool inventory.
-5. **Plan CONTEXT.md content** - Define what each stage CONTEXT.md must contain.
+5. **Plan CONTEXT.md content** - Define what each stage CONTEXT.md must contain and which markdown artifacts it must produce.
 6. **Create build plan** - Document the scaffold.ts command with all parameters.
 7. **Get approval** - Present the plan to the user before building.
 
@@ -44,6 +51,7 @@ NO AMBIGUOUS STAGE DEFINITIONS
 - SYSTEM.md plan is missing or incomplete
 - Build plan is missing scaffold.ts parameters
 - User approval is skipped before build
+- Plan includes backend/frontend/database implementation details instead of workspace structure
 
 ## Anti-Rationalization Table
 

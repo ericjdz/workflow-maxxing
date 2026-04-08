@@ -28,12 +28,19 @@ NO GENERIC FINDINGS
 NO SKIPPING INPUT/OUTPUT ANALYSIS
 NO ASSUMPTIONS WITHOUT EVIDENCE
 
+## Scope Guardrails
+
+- Research the workflow needed to produce outcomes, not the product implementation stack.
+- Convert domain asks (for example, "football predictor") into stageable workflow responsibilities.
+- Keep research outputs markdown-first and suitable for numbered folder CONTEXT contracts.
+- Do not produce backend/frontend/data-model implementation plans in this phase.
+
 ## The Process
 
-1. **Identify workflow type** - Determine what process is being automated.
+1. **Identify workflow type** - Determine what process is being automated as a file-structured markdown workflow.
 2. **Research similar patterns** - Review existing workspaces, docs, and best practices.
 3. **Identify key stages** - Define the natural workflow phases.
-4. **Determine inputs and outputs** - Capture what goes in and comes out at each stage.
+4. **Determine inputs and outputs** - Capture what goes in and what markdown artifacts come out at each stage.
 5. **Identify tooling needs** - List tools commonly needed for this workflow.
 6. **Document findings** - Create a concise research summary for architecture.
 
@@ -43,6 +50,7 @@ NO ASSUMPTIONS WITHOUT EVIDENCE
 - Input and output analysis is missing
 - Tooling assessment is missing
 - Architecture starts before research findings are complete
+- Findings drift into app architecture, model design, or runtime repository scaffolding
 
 ## Anti-Rationalization Table
 

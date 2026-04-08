@@ -66,4 +66,77 @@ describe('dispatchSkill', () => {
 
     expect(result.nextSkill).toBe('architecture');
   });
+
+  it('uses external runner command for worker skill when configured', () => {
+    const skillsDir = path.join(tempDir, 'skills');
+    fs.mkdirSync(path.join(skillsDir, 'worker'), { recursive: true });
+    fs.writeFileSync(path.join(skillsDir, 'worker', 'SKILL.md'), '---\nname: worker\ndescription: test\n---\n\n## Overview\nTest');
+
+    const runnerPath = path.join(tempDir, 'runner.js');
+    fs.writeFileSync(
+      runnerPath,
+      [
+        'const skill = process.argv[2];',
+        'const batchId = Number(process.argv[3]);',
+        'const testCaseId = process.argv[4];',
+        'console.log(JSON.stringify({',
+        '  skill,',
+        '  status: "passed",',
+        '  timestamp: "2026-04-08T00:00:00.000Z",',
+        '  findings: ["external runner executed"],',
+        '  recommendations: ["continue"],',
+        '  metrics: { executionTimeMs: 12 },',
+        '  nextSkill: "validation",',
+        '  batchId,',
+        '  testCaseId,',
+        '}));',
+      ].join('\n'),
+    );
+
+    const runnerCommand = `"${process.execPath}" "${runnerPath}" {skill} {batchId} {testCaseId}`;
+
+    const result = dispatchSkill('worker', skillsDir, {
+      workspacePath: tempDir,
+      runnerCommand,
+      invocation: {
+        skill: 'worker',
+        batchId: 1,
+        testCaseId: 'tc-001',
+      },
+    });
+
+    expect(result.status).toBe('passed');
+    expect(result.findings).toContain('external runner executed');
+    expect(result.nextSkill).toBe('validation');
+  });
+
+  it('returns failed status when external runner command fails', () => {
+    const skillsDir = path.join(tempDir, 'skills');
+    fs.mkdirSync(path.join(skillsDir, 'worker'), { recursive: true });
+    fs.writeFileSync(path.join(skillsDir, 'worker', 'SKILL.md'), '---\nname: worker\ndescription: test\n---\n\n## Overview\nTest');
+
+    const runnerPath = path.join(tempDir, 'failing-runner.js');
+    fs.writeFileSync(
+      runnerPath,
+      [
+        'console.error("runner failed");',
+        'process.exit(2);',
+      ].join('\n'),
+    );
+
+    const runnerCommand = `"${process.execPath}" "${runnerPath}"`;
+
+    const result = dispatchSkill('worker', skillsDir, {
+      workspacePath: tempDir,
+      runnerCommand,
+      invocation: {
+        skill: 'worker',
+        batchId: 2,
+        testCaseId: 'tc-002',
+      },
+    });
+
+    expect(result.status).toBe('failed');
+    expect(result.findings.join(' ')).toContain('runner failed');
+  });
 });

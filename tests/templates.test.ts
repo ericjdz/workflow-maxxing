@@ -9,6 +9,7 @@ describe('Template files', () => {
     '.workspace-templates/SYSTEM.md',
     '.workspace-templates/CONTEXT.md',
     '.workspace-templates/workspace/00-meta/CONTEXT.md',
+    '.workspace-templates/workspace/00-meta/execution-log.md',
     '.workspace-templates/workspace/01-input/CONTEXT.md',
     '.workspace-templates/workspace/02-process/CONTEXT.md',
     '.workspace-templates/workspace/03-output/CONTEXT.md',
@@ -48,6 +49,7 @@ describe('Template files', () => {
     expect(content).toContain('## Sub-Skill Dispatch');
     expect(content).toContain('## Available Scripts');
     expect(content).toContain('## Anti-Rationalization Table');
+    expect(content).toContain('## Scope Guardrails');
     expect(content).toContain('## Integration');
     expect(content).toContain('## ICM Rules');
     expect(content).toContain('## Output Format');
@@ -89,8 +91,11 @@ describe('Template files', () => {
     expect(content).toContain('## Role');
     expect(content).toContain('## Folder Map');
     expect(content).toContain('## Workflow Rules');
+    expect(content).toContain('## Scope Guardrails');
+    expect(content).toContain('## Sequential Execution Protocol');
     expect(content).toContain('## Stage Boundaries');
     expect(content).toContain('## Tooling Policy');
+    expect(content.toLowerCase()).toContain('markdown');
   });
 
   it('root CONTEXT.md includes routing, loading order, and handoff routing', () => {
@@ -105,8 +110,11 @@ describe('Template files', () => {
     expect(content).toContain('## How to Use This File');
     expect(content).toContain('## Task Routing');
     expect(content).toContain('## Loading Order');
+    expect(content).toContain('## Scope Guardrails');
+    expect(content).toContain('## Sequential Routing Contract');
     expect(content).toContain('## Stage Handoff Routing');
     expect(content).toContain('## Escalation');
+    expect(content.toLowerCase()).toContain('markdown');
   });
 
   it('stage context templates include completion and handoff sections', () => {
@@ -128,9 +136,54 @@ describe('Template files', () => {
       expect(content).toContain('## Inputs');
       expect(content).toContain('## Outputs');
       expect(content).toContain('## Dependencies');
+      expect(content).toContain('## Required Evidence');
       expect(content).toContain('## Completion Criteria');
       expect(content).toContain('## Handoff');
+      expect(content.toLowerCase()).toContain('markdown');
     }
+  });
+
+  it('execution-log template provides sequential stage checklist format', () => {
+    const logPath = path.join(templatesDir, '.workspace-templates', 'workspace', '00-meta', 'execution-log.md');
+    if (!fs.existsSync(logPath)) {
+      fail('execution-log.md does not exist');
+      return;
+    }
+
+    const content = fs.readFileSync(logPath, 'utf-8');
+    expect(content).toContain('## Stage Checklist');
+    expect(content).toContain('- [ ] 01-input');
+    expect(content).toContain('- [ ] 02-process');
+    expect(content).toContain('- [ ] 03-output');
+  });
+
+  it('template scaffold script generates robust routing and scope sections', () => {
+    const scriptPath = path.join(templatesDir, '.workspace-templates', 'scripts', 'scaffold.ts');
+    if (!fs.existsSync(scriptPath)) {
+      fail('Template scaffold script does not exist');
+      return;
+    }
+
+    const content = fs.readFileSync(scriptPath, 'utf-8');
+    expect(content).toContain('## Workflow Rules');
+    expect(content).toContain('## Scope Guardrails');
+    expect(content).toContain('## Stage Boundaries');
+    expect(content).toContain('## Task Routing');
+    expect(content).toContain('## Loading Order');
+  });
+
+  it('template validate script enforces structural and semantic routing checks', () => {
+    const scriptPath = path.join(templatesDir, '.workspace-templates', 'scripts', 'validate.ts');
+    if (!fs.existsSync(scriptPath)) {
+      fail('Template validate script does not exist');
+      return;
+    }
+
+    const content = fs.readFileSync(scriptPath, 'utf-8');
+    expect(content).toContain('REQUIRED_SYSTEM_HEADINGS');
+    expect(content).toContain('REQUIRED_ROOT_CONTEXT_HEADINGS');
+    expect(content).toContain('Root routing references all numbered stages');
+    expect(content).toContain('dependencies do not point to later stages');
   });
 
   it('SKILL.md has YAML frontmatter with name and description', () => {

@@ -35,6 +35,7 @@ export function scaffoldWorkspace(options: ScaffoldOptions): void {
   const metaDir = path.join(outputDir, '00-meta');
   fs.mkdirSync(metaDir, { recursive: true });
   fs.writeFileSync(path.join(metaDir, 'tools.md'), generateToolsMd());
+  fs.writeFileSync(path.join(metaDir, 'execution-log.md'), generateExecutionLogMd(stages));
   fs.writeFileSync(path.join(metaDir, 'CONTEXT.md'), `# 00-meta Context\n\nMetadata and tool inventory for the ${name} workspace.\n`);
 
   for (const stage of stages) {
@@ -42,7 +43,7 @@ export function scaffoldWorkspace(options: ScaffoldOptions): void {
     fs.mkdirSync(stageDir, { recursive: true });
     fs.writeFileSync(
       path.join(stageDir, 'CONTEXT.md'),
-      generateStageContextMd(name, stage),
+      generateStageContextMd(name, stage, stages),
     );
   }
 
@@ -52,51 +53,143 @@ export function scaffoldWorkspace(options: ScaffoldOptions): void {
 }
 
 function generateSystemMd(name: string, stages: string[]): string {
+  const folderRows = stages
+    .map((stage, index) => `| ${index + 1} | \`${stage}/\` | ${stageDescription(stage)} |`)
+    .join('\n');
+
   return `# ${name} — System Prompt
 
 ## Role
-You are an AI assistant working within the ${name} workspace.
+You are an AI assistant operating inside the ${name} workspace. Follow stage boundaries and route tasks through stage-specific CONTEXT files.
 
 ## Folder Map
 
-${stages.map((s) => `- \`${s}/\` — ${stageDescription(s)}`).join('\n')}
-- \`00-meta/\` — Metadata and tool inventory
+| Stage | Folder | Purpose |
+|------:|--------|---------|
+${folderRows}
+| meta | \`00-meta/\` | Workspace configuration, tool inventory, and session notes |
 
-## Rules
-- Follow ICM methodology: canonical sources, one-way dependencies, selective loading
-- Each numbered folder is a workflow stage with its own CONTEXT.md for routing
-- Do not create content outside the defined structure
+## Workflow Rules
+1. Read \`SYSTEM.md\` first, then root \`CONTEXT.md\`.
+2. Load only one stage \`CONTEXT.md\` at a time unless handoff explicitly requires another stage.
+3. Keep information canonical; do not duplicate facts across files.
+4. Maintain one-way stage dependencies from earlier stage numbers to later stage numbers.
+
+## Scope Guardrails
+- Build and maintain workflow documentation, not product implementation code.
+- Keep stage outputs as markdown artifacts (plans, checklists, prompts, routing notes).
+- If asked to build the product itself, capture that request as workflow requirements and stay in ICM workspace scope.
+
+## Sequential Execution Protocol
+1. Complete stages strictly in ascending numeric order.
+2. Record stage completion in \`00-meta/execution-log.md\` before moving to the next stage.
+3. Do not produce final deliverables until all prior stage checkboxes are complete.
+
+## Stage Boundaries
+- Each numbered folder is an execution stage.
+- A stage may consume upstream outputs but must not redefine upstream facts.
+- Cross-stage jumps require explicit routing through root \`CONTEXT.md\`.
+
+## Tooling Policy
+- Check \`00-meta/tools.md\` before proposing tool installation.
+- Document approved tooling changes in \`00-meta/tools.md\`.
 `;
 }
 
 function generateContextMd(name: string, stages: string[]): string {
+  const routingRows = stages
+    .map((stage) => `| Work in ${stage} tasks | \`${stage}/CONTEXT.md\` | Stage contract and required outputs |`)
+    .join('\n');
+
+  const handoffs = stages
+    .map((stage, index) => {
+      const nextStage = stages[index + 1];
+      return nextStage
+        ? `- \`${stage}\` -> \`${nextStage}\` when completion criteria are met`
+        : `- \`${stage}\` -> deliver final output and close loop`;
+    })
+    .join('\n');
+
   return `# ${name} — Context Router
 
-## Routing Table
+## How to Use This File
+Use this file to route each task to the smallest required context scope.
 
-${stages.map((s) => `- \`${s}/\` → \`${s}/CONTEXT.md\``).join('\n')}
-- \`00-meta/\` → \`00-meta/tools.md\`
+## Task Routing
+This routing table maps task intent to the correct stage context.
 
-## How to Use
-When working on a task, load only the CONTEXT.md for the relevant stage.
-Do not load the entire workspace. Route to specific sections.
+| When you need to... | Load | Why |
+|---------------------|------|-----|
+| Understand workspace constraints | \`SYSTEM.md\` | Global rules and stage boundaries |
+${routingRows}
+| Check available tools | \`00-meta/tools.md\` | Tool inventory and approval status |
+
+## Loading Order
+1. \`SYSTEM.md\` (always)
+2. This root \`CONTEXT.md\`
+3. One relevant stage \`CONTEXT.md\`
+4. Only the task files needed for that stage
+
+## Scope Guardrails
+- Route domain requests into workflow design steps and markdown deliverables.
+- Do not scaffold backend, frontend, or runtime product source files from this router.
+- Keep outputs file-structured and markdown-first across numbered workflow folders.
+
+## Sequential Routing Contract
+- Route only to the earliest incomplete stage in \`00-meta/execution-log.md\`.
+- Refuse jumps to later stages when earlier stages are not marked complete.
+- Append handoff notes for each completed stage before routing onward.
+
+## Stage Handoff Routing
+${handoffs}
+
+## Escalation
+Escalate when required sections are missing, dependencies are contradictory, or no valid stage route can satisfy the task.
 `;
 }
 
-function generateStageContextMd(name: string, stage: string): string {
+function generateStageContextMd(name: string, stage: string, stages: string[]): string {
+  const stageIndex = stages.indexOf(stage);
+  const previousStage = stageIndex > 0 ? stages[stageIndex - 1] : undefined;
+  const nextStage = stageIndex >= 0 && stageIndex < stages.length - 1
+    ? stages[stageIndex + 1]
+    : undefined;
+
+  const dependencyLine = previousStage
+    ? `- ${previousStage}`
+    : '- None (entry stage)';
+
+  const handoffLine = nextStage
+    ? `- After completion, hand off outputs to ${nextStage}`
+    : '- This is the terminal stage. Package and deliver final output.';
+
   return `# ${stage} — Context
 
 ## Purpose
-This folder handles the ${stage} stage of the ${name} workflow.
+This folder executes the ${stage} stage of the ${name} workflow.
 
 ## Inputs
-- Define what inputs this stage expects
+- Required data artifacts for ${stage}
+- Upstream context from previous stage when applicable
 
 ## Outputs
-- Define what outputs this stage produces
+- Stage-specific deliverables for downstream consumption
+- Updated markdown artifacts needed by the next stage
 
 ## Dependencies
-- List upstream stages this stage depends on
+${dependencyLine}
+
+## Required Evidence
+- Update \`00-meta/execution-log.md\` to mark ${stage} complete before handoff.
+- Link or reference the markdown artifacts produced in this stage.
+
+## Completion Criteria
+- Required outputs are produced and non-empty
+- Outputs conform to stage purpose and markdown-first workflow format
+- Handoff notes are updated for downstream stage
+
+## Handoff
+${handoffLine}
 `;
 }
 
@@ -115,6 +208,24 @@ List tools that are proposed but not yet approved.
 `;
 }
 
+function generateExecutionLogMd(stages: string[]): string {
+  return `# Execution Log
+
+## Stage Checklist
+
+${stages.map((stage) => `- [ ] ${stage}`).join('\n')}
+
+## Rules
+
+1. Mark a stage complete only after its completion criteria are satisfied.
+2. Stages must be checked in ascending numerical order.
+3. Every checked stage must have corresponding evidence notes.
+
+## Evidence Notes
+
+${stages.map((stage) => `### ${stage}\n- Artifacts:\n- Handoff Summary:\n`).join('\n')}`;
+}
+
 function generateReadmeMd(name: string, stages: string[]): string {
   return `# ${name} Workspace
 
@@ -127,8 +238,9 @@ ${stages.map((s) => `- \`${s}/\``).join('\n')}
 
 1. Follow the workflow stages in order
 2. Load CONTEXT.md files selectively — only what you need
-3. Update tools.md when installing new tools
-4. Run validate.ts to check ICM compliance
+3. Update 00-meta/execution-log.md after each completed stage
+4. Keep outputs in stage folders as markdown workflow artifacts
+5. Run validate.ts to check ICM compliance
 `;
 }
 
