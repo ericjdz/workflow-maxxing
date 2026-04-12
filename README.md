@@ -50,6 +50,25 @@ my-workspace/
 
 Now you can use `@daily-digest` to run that workflow!
 
+## Tool Discovery (Automatic)
+
+When you ask `@workspace-maxxing` to create an agent (e.g., "lead scraper"), it **automatically**:
+
+1. **Checks available tools** - What does the AI agent already have?
+2. **Verifies accessibility** - Runs a test to confirm tools work
+3. **Installs missing tools** - Uses tooling sub-skill if needed
+4. **Includes in agent** - Tool instructions in the created agent's prompts
+
+Example for "lead scraper":
+```
+→ Check: playwright available? test it
+→ Check: curl available? verify
+→ Missing: puppeteer MCP → install it
+→ Test: can we scrape a page? → yes
+→ Create @lead-scraper with tool instructions
+→ Deliver
+```
+
 ## Commands
 
 | Command | What It Does |

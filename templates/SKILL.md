@@ -36,6 +36,33 @@ When you invoke `@workspace-maxxing`, you can ask:
 | "Improve my workspace" | Runs autonomous iteration |
 | "Add tools for Z" | Uses tooling sub-skill to install tools |
 
+**IMPORTANT - Tool Discovery Before Agent Delivery:**
+
+When creating ANY agent, ALWAYS do this FIRST:
+
+1. **Check native tools** - What capabilities does the AI agent already have?
+   - Playwright, puppeteer for browser automation?
+   - Curl, wget for HTTP requests?
+   - File system access?
+   - Database connections?
+
+2. **Verify tool accessibility** - Run a simple test to confirm tools work:
+   ```
+   Test: Can you make a simple HTTP request?
+   Test: Can you list files in the current directory?
+   Test: Can you execute a simple script?
+   ```
+
+3. **Install missing tools** - If native tools are insufficient:
+   - Use `/skill tooling` to install MCP servers
+   - Use `npm install` for CLI tools
+   - Document installed tools in `00-meta/tools.md`
+
+4. **Include tool instructions in agent prompts** - The created agent must know:
+   - What tools are available
+   - How to use them
+   - Any rate limits or constraints
+
 The skill will then execute the appropriate phases internally.
 
 ## Tool Discovery & Agent Harness
@@ -106,40 +133,51 @@ This skill provides a complete agent development harness:
 
 ## Agent Creation Workflow
 
-When you invoke `workspace-maxxing` with a request to create an agent (e.g., "create a daily digest agent"), follow this flow:
+When you invoke `workspace-maxxing` with a request to create an agent (e.g., "create a lead scraping agent"), follow this flow:
 
 ```
-1. Parse the request to extract the agent purpose (e.g., "Daily Digest")
-2. Create ICM workspace structure (SYSTEM.md, CONTEXT.md, stage folders)
-3. Create invokable agent in .agents/skills/@<purpose>/
-4. Run self-improvement loop on the agent
+1. Parse the request to extract the agent purpose (e.g., "Lead Scraper")
+2. DISCOVER TOOLS:
+   - Check what native tools are available in the AI agent (playwright, puppeteer, curl, etc.)
+   - Verify tool accessibility by running a simple test
+   - If native tools are insufficient, use tooling sub-skill to install MCPs or CLI tools
+   - Document tools in 00-meta/tools.md
+3. Create ICM workspace structure (SYSTEM.md, CONTEXT.md, stage folders)
+4. Create invokable agent in .agents/skills/@<purpose>/
+   - Include tool usage instructions in the agent prompts
+5. Run self-improvement loop on the agent
    - Generate test cases (edge, empty, varied inputs)
    - Validate agent handling
    - Score robustness (0-100)
    - If score < 85: improve prompts, retry
    - Repeat until score >= 85 or max iterations (3)
-5. Install agent for platform (OpenCode/Claude/Copilot/Gemini)
-6. Deliver workspace with robust agent
+6. Install agent for platform (OpenCode/Claude/Copilot/Gemini)
+7. Deliver workspace with robust agent
 ```
 
-### Agent Creation Example
+### Agent Creation with Tool Discovery Example
 
-User: "Create a daily digest agent"
+User: "Create an agent that scrapes internet data for leads"
 
 ```
--> Extract purpose: "Daily Digest"
--> DISCOVER TOOLS: Use /skill tooling to find relevant tools (e.g., RSS, web scraping, summarization)
+-> Extract purpose: "Lead Scraper"
+-> DISCOVER TOOLS:
+   - Check: Does agent have playwright? → Yes, test it works
+   - Check: Does agent have curl/wget? → Yes, verify accessible
+   - Check: Any MCP servers for scraping? → No, need to install
+   - Action: Run tooling sub-skill to install puppeteer or similar
+   - Verify: Test the tool with a simple request
 -> Create workspace with stages: 01-input, 02-process, 03-output
--> Create agent: @daily-digest in .agents/skills/daily-digest/
+-> Create agent: @lead-scraper with tool instructions in prompts
 -> Run iteration:
-   - Test: empty input -> fix prompts
-   - Test: special chars -> fix prompts  
-   - Test: normal input -> validate
+   - Test: scraping a page -> works
+   - Test: handling empty pages -> handles gracefully
+   - Test: rate limiting -> respects limits
    - Score >= 85? Yes -> deliver
--> Agent is ready to invoke with @daily-digest
+-> Agent is ready to invoke with @lead-scraper
 ```
 
-**Key**: Always look for and leverage tools when creating agents or workspaces.
+**Tool Discovery is MANDATORY** - always check available tools, verify accessibility, and install missing tools before delivering the agent.
 
 ## When Not to Use
 
@@ -151,6 +189,7 @@ User: "Create a daily digest agent"
 
 NO BUILD WITHOUT PLAN
 NO PLAN WITHOUT RESEARCH
+NO TOOL DISCOVERY BEFORE AGENT DELIVERY
 NO IMPROVEMENT WITHOUT VALIDATION
 NO COMPLETION CLAIM WITHOUT VERIFICATION
 NO PRODUCT IMPLEMENTATION INSIDE WORKSPACE BUILDING MODE
