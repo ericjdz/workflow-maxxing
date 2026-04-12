@@ -1,11 +1,43 @@
 #!/usr/bin/env node
 
+import * as fs from 'fs';
 import * as path from 'path';
 import { detectProjectRoot, installSkill, AgentTarget } from './install';
 import { scaffoldWorkspace } from './scripts/scaffold';
 import { createAgent, generateAgentName, AgentOptions } from './agent-creator';
 import { iterateAgent } from './agent-iterator';
 import { detectPlatform, getPlatformInstaller } from './platforms';
+
+/**
+ * Copy sub-skills directory to workspace's .agents/skills/ folder.
+ * This enables /skill research, /skill tooling, etc. inside the workspace.
+ */
+function copySubSkillsToWorkspace(templatesDir: string, workspaceDir: string): void {
+  const skillsSrc = path.join(templatesDir, '.workspace-templates', 'skills');
+  const skillsDest = path.join(workspaceDir, '.agents', 'skills');
+  
+  if (!fs.existsSync(skillsSrc)) {
+    console.log('Warning: No sub-skills found in templates');
+    return;
+  }
+  
+  function copyDir(src: string, dest: string): void {
+    fs.mkdirSync(dest, { recursive: true });
+    const entries = fs.readdirSync(src, { withFileTypes: true });
+    for (const entry of entries) {
+      const srcPath = path.join(src, entry.name);
+      const destPath = path.join(dest, entry.name);
+      if (entry.isDirectory()) {
+        copyDir(srcPath, destPath);
+      } else {
+        fs.copyFileSync(srcPath, destPath);
+      }
+    }
+  }
+  
+  copyDir(skillsSrc, skillsDest);
+  console.log(`Copied sub-skills to: ${skillsDest}`);
+}
 
 function showHelp(): void {
   console.log(`
@@ -59,7 +91,7 @@ function hasFlag(args: string[], flag: string): boolean {
   return args.includes(flag);
 }
 
-async function createWorkspace(args: string[]): Promise<void> {
+async function createWorkspace(args: string[], templatesDir: string): Promise<void> {
   const workspaceName = extractOption(args, '--workspace-name') ?? 'My Workspace';
   const stagesStr = extractOption(args, '--stages') ?? '01-input,02-process,03-output';
   const stages = stagesStr.split(',').map(s => s.trim()).filter(Boolean);
@@ -88,9 +120,13 @@ async function createWorkspace(args: string[]): Promise<void> {
     force: true,
   });
 
-  // Step 2: Create agent if enabled
+  // Step 2: Copy sub-skills to workspace for /skill commands
+  console.log('\nStep 2: Installing sub-skills to workspace...');
+  copySubSkillsToWorkspace(templatesDir, outputDir);
+  
+  // Step 3: Create agent if enabled
   if (withAgent) {
-    console.log('\nStep 2: Creating invokable agent...');
+    console.log('\nStep 3: Creating invokable agent...');
     
     // Generate agent name from workspace name if not provided
     const agentName = agentNameOption ?? generateAgentName(workspaceName);
@@ -103,8 +139,8 @@ async function createWorkspace(args: string[]): Promise<void> {
     
     createAgent(agentOptions);
     
-    // Step 3: Run agent self-improvement loop
-    console.log('\nStep 3: Running agent self-improvement...');
+    // Step 4: Run agent self-improvement loop
+    console.log('\nStep 4: Running agent self-improvement...');
     const agentDirName = agentName.startsWith('@') ? agentName.slice(1) : agentName;
     const agentPath = path.join(outputDir, '.agents', 'skills', agentDirName);
     
@@ -115,8 +151,8 @@ async function createWorkspace(args: string[]): Promise<void> {
       maxIterations,
     });
     
-    // Step 4: Install for detected platform
-    console.log('\nStep 4: Installing for platform...');
+    // Step 5: Install for detected platform
+    console.log('\nStep 5: Installing for platform...');
     const platform = detectPlatform();
     console.log(`Detected platform: ${platform}`);
     
@@ -148,7 +184,8 @@ async function main(): Promise<void> {
   if (args.includes('init') || args.includes('--create-workspace')) {
     // Remove 'init' from args if present, keep other flags
     const cleanArgs = args.filter(a => a !== 'init' && a !== '--create-workspace');
-    await createWorkspace(cleanArgs);
+    const templatesDir = process.env.WORKSPACE_MAXXING_TEMPLATES ?? path.join(__dirname, '..', 'templates');
+    await createWorkspace(cleanArgs, templatesDir);
     return;
   }
 
@@ -210,7 +247,8 @@ async function main(): Promise<void> {
   }
 
   // Default: treat as workspace creation (backward compatible)
-  await createWorkspace(args);
+  const templatesDir = process.env.WORKSPACE_MAXXING_TEMPLATES ?? path.join(__dirname, '..', 'templates');
+  await createWorkspace(args, templatesDir);
 }
 
 main().catch((error) => {
