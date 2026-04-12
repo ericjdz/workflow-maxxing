@@ -1,6 +1,6 @@
 {
   "name": "workspace-maxxing",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "npx-installable skill for AI agents to create structured workspaces using ICM methodology",
   "bin": {
     "workspace-maxxing": "dist/index.js"
@@ -12,7 +12,13 @@
     "test:watch": "jest --watch",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["ai-agent", "workspace", "skill", "opencode", "icm"],
+  "keywords": [
+    "ai-agent",
+    "workspace",
+    "skill",
+    "opencode",
+    "icm"
+  ],
   "author": "Eric Julian Deguzman <ericjuliandeguzman77@gmail.com>",
   "license": "MIT",
   "repository": {
