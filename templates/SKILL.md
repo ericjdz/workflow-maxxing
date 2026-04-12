@@ -1,13 +1,19 @@
 ---
 name: workspace-maxxing
-description: "Autonomously creates, validates, and improves ICM-compliant workspaces using batched parallel sub-agents. Use when user asks to 'build a workspace', 'create a workflow', 'automate a process', 'improve this workspace', 'validate this workspace', 'iterate on this workspace', or 'run test cases'."
+description: "Autonomously creates, validates, and improves ICM-compliant workspaces using batched parallel sub-agents. Use when user asks to 'build a workspace', 'create a workflow', 'automate a process', 'improve this workspace', 'validate this workspace', 'iterate on this workspace', 'run test cases', or 'create an agent'."
 ---
 
 # Workspace-Maxxing Skill
 
 ## Overview
 
-Autonomous workflow system that creates, validates, and improves ICM-compliant workspaces through phased execution, batched parallel sub-agent iteration, and condition-driven improvement loops.
+This is an **AI agent skill** that creates ICM-compliant workspaces with invokable agents. 
+
+**User Flow:**
+1. Install: `npx workspace-maxxing install` 
+2. Invoke: `@workspace-maxxing` in your AI agent
+3. Request: "Create a daily digest workspace" (or similar)
+4. The skill builds: ICM workspace + invokable agent
 
 ## When to Use
 
@@ -17,6 +23,20 @@ Autonomous workflow system that creates, validates, and improves ICM-compliant w
 - User asks to assess or install tools for a workspace
 - User asks to run test cases against a workspace
 - **User asks to create an agent for a specific task** (e.g., "create a daily digest agent", "make a news aggregator agent")
+
+## User Commands (to the AI agent)
+
+When you invoke `@workspace-maxxing`, you can ask:
+
+| Request | What Happens |
+|---------|-------------|
+| "Build a workspace for X" | Creates ICM workspace with X workflow |
+| "Create an agent for Y" | Creates invokable @agent for Y task |
+| "Validate my workspace" | Checks ICM compliance |
+| "Improve my workspace" | Runs autonomous iteration |
+| "Add tools for Z" | Uses tooling sub-skill to install tools |
+
+The skill will then execute the appropriate phases internally.
 
 ## Tool Discovery & Agent Harness
 

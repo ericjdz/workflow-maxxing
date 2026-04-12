@@ -1,93 +1,62 @@
 # workspace-maxxing
 
-An installable skill package for AI coding agents that scaffolds, validates, and iterates on ICM-style workspaces with explicit workflow routing. Now with **invokable agent creation** - the skill can create autonomous agents that can be invoked with `@` in your workspace.
+An AI agent skill that builds ICM-compliant workspaces with invokable agents. The skill runs **inside your AI agent** and creates workspaces + agents on demand.
 
-## Why This Exists
+## The Flow
 
-Most agent workspaces drift over time because prompts are underspecified and context loading is inconsistent. `workspace-maxxing` provides a repeatable workflow that generates structured `SYSTEM.md` and `CONTEXT.md` contracts, validates them, and improves them through autonomous iteration.
-
-## Features
-
-- Multi-agent install targets: OpenCode, Claude Code, GitHub Copilot, Gemini CLI
-- ICM workspace scaffolding with robust root and per-stage context contracts
-- Workflow-aware validation (routing coverage, stage dependency direction, selective loading)
-- Batched autonomous iteration via orchestrator + worker/fixer loops
-- Built-in test-case generation and weighted benchmarking
-- **Create invokable agents** - the skill can build autonomous agents that can be invoked with `@` in your workspace
-- **Self-improving agents** - created agents run through iteration loops to ensure robustness
+```
+1. Install: npx workspace-maxxing install
+2. Invoke in AI: @workspace-maxxing
+3. Ask: "Create a daily digest workspace"
+4. Skill builds: workspace + @daily-digest agent
+```
 
 ## Quick Start
 
-### One Command Does Everything
-
 ```bash
-# Create workspace with agent (recommended)
-npx workspace-maxxing init
-
-# Install skill to OpenCode
+# Step 1: Install the skill to your project
 npx workspace-maxxing install
 
-# Or use the old way (still works)
-npx workspace-maxxing --opencode
+# Step 2: In your AI agent, invoke the skill
+@workspace-maxxing
+
+# Step 3: Ask it to create something
+"Create a workspace for my daily news aggregator"
 ```
 
-That's it! No extra flags needed.
+The skill will then:
+- Research your request
+- Design the workspace architecture
+- Build the ICM folder structure
+- Create an invokable agent inside
+- Run self-improvement on the agent
+- Deliver the complete workspace
 
-## Two Main Use Cases
+## What Gets Created
 
-### Use Case 1: Create a New Workspace with Agent
+When you ask `@workspace-maxxing` to create a workspace for "Daily Digest":
 
-When you want to start a new workflow project:
-
-```bash
-# Basic (creates "My Workspace" with 3 stages)
-npx workspace-maxxing init
-
-# Custom name
-npx workspace-maxxing init --workspace-name "Daily Digest"
-
-# Custom stages
-npx workspace-maxxing init --stages "01-input,02-process,03-output,04-deploy"
-
-# Without agent (backward compatible)
-npx workspace-maxxing init --no-agent
-
-# To specific folder
-npx workspace-maxxing init --output "./my-workspace"
+```
+my-workspace/
+├── .agents/skills/daily-digest/  ← Invokable with @daily-digest
+│   ├── SKILL.md
+│   └── prompts/
+├── 01-input/
+├── 02-process/
+├── 03-output/
+├── SYSTEM.md
+└── CONTEXT.md
 ```
 
-This creates:
-- ICM workspace folder structure
-- Invokable `@agent` in `.agents/skills/`
-- Runs self-improvement loop (score >= 85)
+Now you can use `@daily-digest` to run that workflow!
 
-### Use Case 2: Install the Skill to Your Project
+## Commands
 
-When you want to use workspace-maxxing as a skill in your AI agent:
-
-```bash
-# Install to current project (OpenCode)
-npx workspace-maxxing install
-
-# Install to specific platform
-npx workspace-maxxing --opencode
-npx workspace-maxxing --claude
-npx workspace-maxxing --copilot
-npx workspace-maxxing --gemini
-```
-
-This installs the skill to `.agents/skills/workspace-maxxing/` so you can invoke it in your AI agent session with `@workspace-maxxing`.
-
-## CLI Options
-
-| Option | Description |
-|--------|-------------|
-| `init` | Create workspace with agent (default command) |
-| `install` | Install skill to current project |
-| `--workspace-name` | Name of the workspace |
-| `--stages` | Comma-separated stages |
-| `--output` | Output directory |
-| `--no-agent` | Create workspace without agent |
+| Command | What It Does |
+|---------|-------------|
+| `npx workspace-maxxing install` | Install skill to current project |
+| `@workspace-maxxing` | Invoke in your AI agent |
+| `npx workspace-maxxing --opencode` | Install for specific platform |
 | `--stages` | "01-input,02-process,03-output" | Comma-separated stage names |
 | `--output` | "./workspace" | Output directory |
 | `--agent-name` | auto-generated (@workspace-name) | Custom agent name |
