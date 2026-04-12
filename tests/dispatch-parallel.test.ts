@@ -16,6 +16,23 @@ describe('parallel dispatch', () => {
 
   it('dispatches multiple skills in parallel and aggregates results', () => {
     const skillsDir = path.join(tempDir, 'skills');
+    fs.mkdirSync(path.join(skillsDir, 'validation'), { recursive: true });
+    fs.writeFileSync(path.join(skillsDir, 'validation', 'SKILL.md'), '---\nname: validation\n---\n\nTest');
+
+    const invocations: ParallelInvocation[] = [
+      { skill: 'validation', batchId: 1, testCaseId: 'tc-001' },
+      { skill: 'validation', batchId: 1, testCaseId: 'tc-002' },
+    ];
+
+    const results = dispatchParallel(invocations, skillsDir);
+
+    expect(results).toHaveLength(2);
+    expect(results[0].status).toBe('passed');
+    expect(results[1].status).toBe('passed');
+  });
+
+  it('fails worker invocations when external runner is not configured', () => {
+    const skillsDir = path.join(tempDir, 'skills');
     fs.mkdirSync(path.join(skillsDir, 'worker'), { recursive: true });
     fs.writeFileSync(path.join(skillsDir, 'worker', 'SKILL.md'), '---\nname: worker\n---\n\nTest');
 
@@ -27,8 +44,8 @@ describe('parallel dispatch', () => {
     const results = dispatchParallel(invocations, skillsDir);
 
     expect(results).toHaveLength(2);
-    expect(results[0].status).toBe('passed');
-    expect(results[1].status).toBe('passed');
+    expect(results[0].status).toBe('failed');
+    expect(results[1].status).toBe('failed');
   });
 
   it('includes batchId and testCaseId in results', () => {

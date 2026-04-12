@@ -163,6 +163,38 @@ describe('Sub-Skills', () => {
       expect(content).toContain('## Integration');
     });
   });
+
+  describe('worker', () => {
+    it('documents strict external runner contract and payload schema', () => {
+      const filePath = path.join(skillsDir, 'worker', 'SKILL.md');
+      expect(fs.existsSync(filePath)).toBe(true);
+
+      const content = fs.readFileSync(filePath, 'utf-8');
+      expect(content).toContain('External Runner Contract');
+      expect(content).toContain('--subagent-runner');
+      expect(content).toContain('{skill}');
+      expect(content).toContain('{workspace}');
+      expect(content).toContain('{batchId}');
+      expect(content).toContain('{testCaseId}');
+      expect(content).toContain('report.json');
+    });
+  });
+
+  describe('fixer', () => {
+    it('documents strict external runner contract and payload schema', () => {
+      const filePath = path.join(skillsDir, 'fixer', 'SKILL.md');
+      expect(fs.existsSync(filePath)).toBe(true);
+
+      const content = fs.readFileSync(filePath, 'utf-8');
+      expect(content).toContain('External Runner Contract');
+      expect(content).toContain('--subagent-runner');
+      expect(content).toContain('{skill}');
+      expect(content).toContain('{workspace}');
+      expect(content).toContain('{batchId}');
+      expect(content).toContain('{testCaseId}');
+      expect(content).toContain('report.json');
+    });
+  });
 });
 
 describe('Dispatch Script', () => {

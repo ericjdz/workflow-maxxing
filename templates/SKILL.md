@@ -16,6 +16,41 @@ Autonomous workflow system that creates, validates, and improves ICM-compliant w
 - User asks for workspace architecture or structure design
 - User asks to assess or install tools for a workspace
 - User asks to run test cases against a workspace
+- **User asks to create an agent for a specific task** (e.g., "create a daily digest agent", "make a news aggregator agent")
+
+## Agent Creation Workflow
+
+When you invoke `workspace-maxxing` with a request to create an agent (e.g., "create a daily digest agent"), follow this flow:
+
+```
+1. Parse the request to extract the agent purpose (e.g., "Daily Digest")
+2. Create ICM workspace structure (SYSTEM.md, CONTEXT.md, stage folders)
+3. Create invokable agent in .agents/skills/@<purpose>/
+4. Run self-improvement loop on the agent
+   - Generate test cases (edge, empty, varied inputs)
+   - Validate agent handling
+   - Score robustness (0-100)
+   - If score < 85: improve prompts, retry
+   - Repeat until score >= 85 or max iterations (3)
+5. Install agent for platform (OpenCode/Claude/Copilot/Gemini)
+6. Deliver workspace with robust agent
+```
+
+### Agent Creation Example
+
+User: "Create a daily digest agent"
+
+```
+-> Extract purpose: "Daily Digest"
+-> Create workspace with stages: 01-input, 02-process, 03-output
+-> Create agent: @daily-digest in .agents/skills/daily-digest/
+-> Run iteration:
+   - Test: empty input -> fix prompts
+   - Test: special chars -> fix prompts  
+   - Test: normal input -> validate
+   - Score >= 85? Yes -> deliver
+-> Agent is ready to invoke with @daily-digest
+```
 
 ## When Not to Use
 
@@ -95,8 +130,16 @@ node scripts/orchestrator.ts --workspace ./workspace --batch-size 3 --score-thre
 ## Sub-Agent Iteration Contract
 
 - True sub-agent mode requires `--subagent-runner` (or `WORKSPACE_MAXXING_SUBAGENT_RUNNER`) so worker/fixer test cases execute outside the orchestrator process.
-- Without a runner command, iteration falls back to simulated dispatch and should be treated as a dry-run.
+- Worker/fixer execution MUST fail fast when no runner command is configured.
 - Batch artifacts must include generated test cases, per-test-case reports, and summary evidence under `.agents/iteration/`.
+
+## Sub-Agent Runner Contract
+
+- Worker/fixer loops are external-runner-only in strict mode.
+- The runner command template must support placeholders: `{skill}`, `{workspace}`, `{batchId}`, `{testCaseId}`.
+- Expected runner output is JSON with `{skill, status, timestamp, findings, recommendations, metrics, nextSkill}`.
+- Non-JSON runner output is treated as a runner contract failure for worker/fixer execution.
+- Use telemetry artifacts under `.agents/iteration/runs/` to diagnose command/rendering or payload issues.
 
 ## Sub-Skill Dispatch
 
@@ -107,8 +150,8 @@ node scripts/orchestrator.ts --workspace ./workspace --batch-size 3 --score-thre
 | After architecture approved | (use scaffold.ts) | `node scripts/scaffold.ts --name "<name>" --stages "<stages>" --output ./workspace` |
 | After building | `validation` | `node scripts/dispatch.ts --skill validation --workspace ./workspace` |
 | Running autonomous iteration | (use orchestrator.ts) | `node scripts/orchestrator.ts --workspace ./workspace --subagent-runner "<runner>"` |
-| Worker execution | `worker` | `node scripts/dispatch.ts --skill worker --workspace ./workspace --batch-id <N>` |
-| Fix loop | `fixer` | `node scripts/dispatch.ts --skill fixer --workspace ./workspace --batch-id <N>` |
+| Worker execution | `worker` | `node scripts/dispatch.ts --skill worker --workspace ./workspace --batch-id <N> --runner-command "<runner {skill} {workspace} {batchId} {testCaseId}>"` |
+| Fix loop | `fixer` | `node scripts/dispatch.ts --skill fixer --workspace ./workspace --batch-id <N> --runner-command "<runner {skill} {workspace} {batchId} {testCaseId}>"` |
 | Manual condition loop only (not orchestrator batch loop): score < 85 due to prompt quality | `prompt-engineering` | `node scripts/dispatch.ts --skill prompt-engineering --workspace ./workspace` |
 | Manual condition loop only (not orchestrator batch loop): no tests exist | `testing` | `node scripts/dispatch.ts --skill testing --workspace ./workspace` |
 | Manual condition loop only (not orchestrator batch loop): score plateaued across full runs | `iteration` | `node scripts/dispatch.ts --skill iteration --workspace ./workspace` |
@@ -213,3 +256,92 @@ node scripts/dispatch.ts --skill <name> --workspace ./workspace [--batch-id <N>]
 - .agents/skills/<workspace-name>/ - installable skill
 - USAGE.md - how to use this workspace in future sessions
 - .agents/iteration/summary.json - autonomous iteration results
+
+## Creating Workspaces with Invokable Agents
+
+The workspace-maxxing skill can now create both the workspace folder structure AND an invokable agent that can be called with `@` in the workspace.
+
+### CLI Commands
+
+```bash
+# Create workspace WITH agent (default)
+npx workspace-maxxing --create-workspace --workspace-name "Daily Digest" --stages "01-input,02-process,03-output"
+
+# Create workspace WITHOUT agent (backward compatible)
+npx workspace-maxxing --create-workspace --workspace-name "My Workflow" --no-agent
+
+# Custom agent name
+npx workspace-maxxing --create-workspace --workspace-name "AI News" --agent-name "@news-agent"
+
+# Custom iteration settings
+npx workspace-maxxing --create-workspace --workspace-name "My Workflow" --threshold 90 --max-iterations 5
+```
+
+### Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--create-workspace` | - | Enable workspace creation mode |
+| `--workspace-name` | "My Workspace" | Name of the workspace |
+| `--stages` | "01-input,02-process,03-output" | Comma-separated stage names |
+| `--agent-name` | auto-generated (@workspace-name) | Custom agent name |
+| `--no-agent` | false | Create workspace without agent |
+| `--threshold` | 85 | Robustness threshold for agent iteration |
+| `--max-iterations` | 3 | Max improvement cycles |
+
+### What Gets Created
+
+When you run with `--create-workspace`:
+
+1. **ICM Workspace** - Folder structure with SYSTEM.md, CONTEXT.md, stage folders
+2. **Invokable Agent** - Stored in `.agents/skills/@<name>/`
+3. **Self-Improvement** - Agent runs through iteration loop until robustness >= threshold
+
+### Agent Structure
+
+```
+workspace/
+├── .agents/
+│   └── skills/
+│       └── @<name>/           # The invokable agent
+│           ├── SKILL.md
+│           ├── config.json
+│           ├── prompts/
+│           │   ├── system.md
+│           │   └── tasks/
+│           ├── tools/
+│           └── tests/
+├── 01-input/
+├── 02-process/
+├── 03-output/
+├── SYSTEM.md
+└── CONTEXT.md
+```
+
+### Invoking the Agent
+
+After workspace is created, use `@` followed by the agent name:
+
+- **OpenCode**: `@daily-digest`
+- **Claude Code**: Via `.claude/skills/` directory
+- **Copilot**: Via `.github/copilot-instructions/`
+- **Gemini**: Via `.gemini/skills/` directory
+
+### Agent Self-Improvement
+
+When the agent is created, it runs through an iteration loop:
+
+1. **Generate test cases** - Edge cases, empty states, varied inputs
+2. **Validate** - Check agent handles each case properly
+3. **Score** - Compute robustness score (0-100)
+4. **Improve** - If score < threshold, update prompts to fix issues
+5. **Repeat** - Until score >= threshold or max iterations reached
+
+This ensures the delivered agent is robust for real-world use.
+
+### Backward Compatibility
+
+Existing workspace-maxxing behavior is unchanged:
+- `--opencode`, `--claude`, `--copilot`, `--gemini` still install the skill
+- Using `--no-agent` creates workspace-only (no agent)
+- Default behavior (without `--no-agent`) includes agent creation

@@ -7,7 +7,6 @@ export interface OrchestratorConfig {
   scoreThreshold?: number;
   workerTimeout?: number;
   subagentRunner?: string;
-  enforceExternalSubagents?: boolean;
 }
 
 export interface BatchReport {
@@ -35,7 +34,6 @@ export const DEFAULT_CONFIG: Required<OrchestratorConfig> = {
   scoreThreshold: 85,
   workerTimeout: 300,
   subagentRunner: '',
-  enforceExternalSubagents: false,
 };
 
 const CONFIG_LIMITS = {
@@ -92,6 +90,48 @@ interface TimedDispatchOutcome {
   timedOut: boolean;
 }
 
+function extractTestCaseArray(raw: unknown): Array<Record<string, unknown>> {
+  if (Array.isArray(raw)) {
+    return raw as Array<Record<string, unknown>>;
+  }
+
+  if (raw && typeof raw === 'object' && Array.isArray((raw as { testCases?: unknown[] }).testCases)) {
+    return (raw as { testCases: Array<Record<string, unknown>> }).testCases;
+  }
+
+  throw new Error('test-cases.json must be an array or an object with a testCases array');
+}
+
+function normalizeTestCaseIds(
+  testCases: Array<Record<string, unknown>>,
+  requireExplicitIds: boolean,
+): string[] {
+  const seen = new Set<string>();
+  const ids: string[] = [];
+
+  for (let i = 0; i < testCases.length; i++) {
+    const tc = testCases[i];
+    if (!tc || typeof tc !== 'object' || tc.input === undefined || tc.expected === undefined) {
+      throw new Error(`test-cases.json item at index ${i} must include id, input, and expected`);
+    }
+
+    const explicitId = typeof tc.id === 'string' ? tc.id.trim() : '';
+    if (requireExplicitIds && !explicitId) {
+      throw new Error(`test-cases.json item at index ${i} must include id, input, and expected`);
+    }
+
+    const resolvedId = explicitId || `tc-${String(i + 1).padStart(3, '0')}`;
+    if (seen.has(resolvedId)) {
+      throw new Error(`Duplicate testCaseId: ${resolvedId}`);
+    }
+
+    seen.add(resolvedId);
+    ids.push(resolvedId);
+  }
+
+  return ids;
+}
+
 function validateIntegerConfig(name: ConfigKey, value: number): number {
   const limits = CONFIG_LIMITS[name];
   if (!Number.isFinite(value) || !Number.isInteger(value) || value < limits.min || value > limits.max) {
@@ -109,7 +149,6 @@ function resolveConfig(config: OrchestratorConfig): Required<OrchestratorConfig>
     scoreThreshold: validateIntegerConfig('scoreThreshold', config.scoreThreshold ?? DEFAULT_CONFIG.scoreThreshold),
     workerTimeout: validateIntegerConfig('workerTimeout', config.workerTimeout ?? DEFAULT_CONFIG.workerTimeout),
     subagentRunner: (config.subagentRunner ?? '').trim(),
-    enforceExternalSubagents: config.enforceExternalSubagents ?? DEFAULT_CONFIG.enforceExternalSubagents,
   };
 }
 
@@ -222,14 +261,9 @@ export function runBatchLifecycle(
 ): BatchLifecycleResult {
   const resolvedConfig = resolveConfig(config);
 
-  if (resolvedConfig.enforceExternalSubagents && !resolvedConfig.subagentRunner) {
-    throw new Error('External sub-agent runner required: pass --subagent-runner <command> or set WORKSPACE_MAXXING_SUBAGENT_RUNNER');
-  }
-
   const ws = path.resolve(workspacePath);
   const iterationDir = path.join(ws, '.agents', 'iteration');
   fs.mkdirSync(iterationDir, { recursive: true });
-
   const { generateTestCases } = require('./generate-tests') as {
     generateTestCases: (workspacePath: string, outputPath?: string) => GeneratedTestCasesResult;
   };
@@ -241,9 +275,24 @@ export function runBatchLifecycle(
   };
 
   const testCasesResultPath = path.join(iterationDir, 'test-cases.json');
-  const testCasesResult = generateTestCases(ws);
-  fs.writeFileSync(testCasesResultPath, JSON.stringify(testCasesResult, null, 2));
-  const testCaseIds = testCasesResult.testCases.map((_: unknown, i: number) => `tc-${String(i + 1).padStart(3, '0')}`);
+  const existingTestCasesFile = fs.existsSync(testCasesResultPath);
+  // Prefer agent-produced test-cases if already present; otherwise generate fallback
+  let testCasesResultRaw: any = null;
+  if (existingTestCasesFile) {
+    try {
+      testCasesResultRaw = JSON.parse(fs.readFileSync(testCasesResultPath, 'utf-8'));
+    } catch (e) {
+      const emsg = (e && (e as any).message) ? (e as any).message : String(e);
+      throw new Error(`Failed to parse existing test-cases.json: ${emsg}`);
+    }
+  } else {
+    const generated = generateTestCases(ws);
+    fs.writeFileSync(testCasesResultPath, JSON.stringify(generated, null, 2));
+    testCasesResultRaw = generated;
+  }
+
+  const testCases = extractTestCaseArray(testCasesResultRaw);
+  const testCaseIds = normalizeTestCaseIds(testCases, existingTestCasesFile);
 
   const dispatchOptions: DispatchParallelOptions = {
     workspacePath: ws,
@@ -462,10 +511,9 @@ if (require.main === module) {
   const maxFixRetriesStr = parseArg('--max-fix-retries');
   const workerTimeoutStr = parseArg('--worker-timeout');
   const subagentRunner = parseArg('--subagent-runner') ?? process.env.WORKSPACE_MAXXING_SUBAGENT_RUNNER;
-  const allowSimulatedDispatch = args.includes('--allow-simulated-dispatch');
 
   if (!workspace) {
-    console.error('Usage: node orchestrator.ts --workspace <path> [--batch-size <n>] [--score-threshold <n>] [--max-fix-retries <n>] [--worker-timeout <s>] [--subagent-runner <command>] [--allow-simulated-dispatch]');
+    console.error('Usage: node orchestrator.ts --workspace <path> [--batch-size <n>] [--score-threshold <n>] [--max-fix-retries <n>] [--worker-timeout <s>] [--subagent-runner <command>]');
     process.exit(1);
   }
 
@@ -481,7 +529,6 @@ if (require.main === module) {
     if (maxFixRetries !== undefined) config.maxFixRetries = maxFixRetries;
     if (workerTimeout !== undefined) config.workerTimeout = workerTimeout;
     if (subagentRunner) config.subagentRunner = subagentRunner;
-    config.enforceExternalSubagents = !allowSimulatedDispatch;
 
     const summary = runBatchLifecycle(workspace, config);
     console.log(JSON.stringify(summary, null, 2));

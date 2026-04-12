@@ -94,6 +94,165 @@ describe('orchestrator', () => {
       expect(() => runBatchLifecycle(tempDir, { workerTimeout: 0 })).toThrow(/Invalid workerTimeout/);
     });
 
+    it('prefers existing agent-generated test-cases.json over generate fallback', () => {
+      const iterationDir = path.join(tempDir, '.agents', 'iteration');
+      fs.mkdirSync(iterationDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(iterationDir, 'test-cases.json'),
+        JSON.stringify([
+          { id: 'tc-a', input: { payload: 'a' }, expected: { criteria: ['a'] } },
+          { id: 'tc-b', input: { payload: 'b' }, expected: { criteria: ['b'] } },
+        ], null, 2),
+      );
+
+      const generateSpy = jest.spyOn(generateTests, 'generateTestCases').mockReturnValue({
+        testCases: [
+          { stage: 'fallback', type: 'sample', input: 'x', expected: 'x' },
+        ],
+      });
+
+      const dispatchSpy = jest.spyOn(dispatch, 'dispatchParallel').mockImplementation((invocations) => {
+        return invocations.map((inv) => ({
+          skill: inv.skill,
+          status: 'passed',
+          batchId: inv.batchId,
+          testCaseId: inv.testCaseId,
+          timestamp: '2026-04-07T00:00:00.000Z',
+          findings: [],
+          recommendations: ['continue'],
+          metrics: { latencyMs: 5 },
+          nextSkill: 'validation',
+        }));
+      });
+
+      jest.spyOn(benchmark, 'calculateBenchmark').mockReturnValue({
+        workspace: 'test',
+        agent: 'test-agent',
+        timestamp: '2026-04-07T00:00:00.000Z',
+        rawScore: 90,
+        weightedScore: 95,
+        stages: [],
+        fixSuggestions: [],
+        improvementPotential: false,
+      });
+
+      const result = runBatchLifecycle(tempDir, {
+        batchSize: 2,
+        scoreThreshold: 85,
+        maxFixRetries: 1,
+        workerTimeout: 300,
+      });
+
+      expect(result.totalBatches).toBe(1);
+      expect(generateSpy).not.toHaveBeenCalled();
+      expect(dispatchSpy).toHaveBeenCalledTimes(1);
+      expect(dispatchSpy.mock.calls[0][0]).toEqual([
+        { skill: 'worker', batchId: 1, testCaseId: 'tc-a' },
+        { skill: 'worker', batchId: 1, testCaseId: 'tc-b' },
+      ]);
+    });
+
+    it('throws when existing test-cases.json has invalid top-level structure', () => {
+      const iterationDir = path.join(tempDir, '.agents', 'iteration');
+      fs.mkdirSync(iterationDir, { recursive: true });
+      fs.writeFileSync(path.join(iterationDir, 'test-cases.json'), JSON.stringify({ foo: 'bar' }, null, 2));
+
+      expect(() => runBatchLifecycle(tempDir, {
+        batchSize: 1,
+        scoreThreshold: 85,
+        maxFixRetries: 1,
+        workerTimeout: 300,
+      })).toThrow(/test-cases.json must be an array or an object with a testCases array/);
+    });
+
+    it('throws when any test-case is missing id/input/expected fields', () => {
+      const iterationDir = path.join(tempDir, '.agents', 'iteration');
+      fs.mkdirSync(iterationDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(iterationDir, 'test-cases.json'),
+        JSON.stringify([
+          { id: 'tc-001', input: { payload: 'a' }, expected: { criteria: ['a'] } },
+          { id: 'tc-002', input: { payload: 'b' } },
+        ], null, 2),
+      );
+
+      jest.spyOn(dispatch, 'dispatchParallel').mockImplementation((invocations) => {
+        return invocations.map((inv) => ({
+          skill: inv.skill,
+          status: 'passed',
+          batchId: inv.batchId,
+          testCaseId: inv.testCaseId,
+          timestamp: '2026-04-07T00:00:00.000Z',
+          findings: [],
+          recommendations: ['continue'],
+          metrics: { latencyMs: 5 },
+          nextSkill: 'validation',
+        }));
+      });
+
+      jest.spyOn(benchmark, 'calculateBenchmark').mockReturnValue({
+        workspace: 'test',
+        agent: 'test-agent',
+        timestamp: '2026-04-07T00:00:00.000Z',
+        rawScore: 90,
+        weightedScore: 95,
+        stages: [],
+        fixSuggestions: [],
+        improvementPotential: false,
+      });
+
+      expect(() => runBatchLifecycle(tempDir, {
+        batchSize: 1,
+        scoreThreshold: 85,
+        maxFixRetries: 1,
+        workerTimeout: 300,
+      })).toThrow(/must include id, input, and expected/);
+    });
+
+    it('throws when test-case ids are duplicated', () => {
+      const iterationDir = path.join(tempDir, '.agents', 'iteration');
+      fs.mkdirSync(iterationDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(iterationDir, 'test-cases.json'),
+        JSON.stringify([
+          { id: 'tc-001', input: { payload: 'a' }, expected: { criteria: ['a'] } },
+          { id: 'tc-001', input: { payload: 'b' }, expected: { criteria: ['b'] } },
+        ], null, 2),
+      );
+
+      jest.spyOn(dispatch, 'dispatchParallel').mockImplementation((invocations) => {
+        return invocations.map((inv) => ({
+          skill: inv.skill,
+          status: 'passed',
+          batchId: inv.batchId,
+          testCaseId: inv.testCaseId,
+          timestamp: '2026-04-07T00:00:00.000Z',
+          findings: [],
+          recommendations: ['continue'],
+          metrics: { latencyMs: 5 },
+          nextSkill: 'validation',
+        }));
+      });
+
+      jest.spyOn(benchmark, 'calculateBenchmark').mockReturnValue({
+        workspace: 'test',
+        agent: 'test-agent',
+        timestamp: '2026-04-07T00:00:00.000Z',
+        rawScore: 90,
+        weightedScore: 95,
+        stages: [],
+        fixSuggestions: [],
+        improvementPotential: false,
+      });
+
+      expect(() => runBatchLifecycle(tempDir, {
+        batchSize: 1,
+        scoreThreshold: 85,
+        maxFixRetries: 1,
+        workerTimeout: 300,
+      })).toThrow(/Duplicate testCaseId/);
+    });
+
     it('runs full lifecycle and writes summary for passing batches', () => {
       jest.spyOn(generateTests, 'generateTestCases').mockImplementation((workspacePath, outputPath) => {
         const payload = {

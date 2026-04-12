@@ -381,5 +381,41 @@ describe('validate', () => {
       expect(result.passed).toBe(false);
       expect(result.checks.some((c) => c.name.includes('test-cases.json exists') && !c.passed)).toBe(true);
     });
+
+    it('fails when test-cases readiness marker is missing', () => {
+      const ws = createValidWorkspace();
+      fs.unlinkSync(path.join(ws, '.agents', 'iteration', '.test-cases-ready'));
+
+      const result = validateWorkspace(ws);
+
+      expect(result.passed).toBe(false);
+      expect(result.checks.some((c) => c.name.includes('.test-cases-ready exists') && !c.passed)).toBe(true);
+    });
+
+    it('fails when test-cases.json is malformed JSON', () => {
+      const ws = createValidWorkspace();
+      fs.writeFileSync(path.join(ws, '.agents', 'iteration', 'test-cases.json'), '{ not-valid-json }');
+
+      const result = validateWorkspace(ws);
+
+      expect(result.passed).toBe(false);
+      expect(result.checks.some((c) => c.name.includes('parseable JSON') && !c.passed)).toBe(true);
+    });
+
+    it('fails when test-cases.json items miss required fields', () => {
+      const ws = createValidWorkspace();
+      fs.writeFileSync(
+        path.join(ws, '.agents', 'iteration', 'test-cases.json'),
+        JSON.stringify([
+          { id: 'tc-001', input: { type: 'text', payload: 'a' }, expected: { matcher: 'equals' } },
+          { id: 'tc-002', input: { type: 'text', payload: 'b' } },
+        ], null, 2),
+      );
+
+      const result = validateWorkspace(ws);
+
+      expect(result.passed).toBe(false);
+      expect(result.checks.some((c) => c.name.includes('items have minimal fields') && !c.passed)).toBe(true);
+    });
   });
 });

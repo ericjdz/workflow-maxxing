@@ -129,6 +129,62 @@ function createRunnerFailureReport(
   };
 }
 
+function truncateTelemetryText(value: string, maxLength: number = 2000): string {
+  if (value.length <= maxLength) {
+    return value;
+  }
+  return `${value.slice(0, maxLength)}...`;
+}
+
+function writeRunnerTelemetry(
+  skillName: string,
+  options: DispatchOptions,
+  details: {
+    commandTemplate: string;
+    renderedCommand: string;
+    status: DispatchReport['status'];
+    timestamp: string;
+    durationMs: number;
+    exitCode: number;
+    timedOut: number;
+    stdout: string;
+    stderr: string;
+    parsedPayload: number;
+  },
+): void {
+  try {
+    const runsDir = path.join(options.workspacePath ?? process.cwd(), '.agents', 'iteration', 'runs');
+    fs.mkdirSync(runsDir, { recursive: true });
+
+    const batchToken = options.invocation ? String(options.invocation.batchId) : 'na';
+    const testCaseToken = options.invocation?.testCaseId ? options.invocation.testCaseId.replace(/[^a-zA-Z0-9-_]/g, '_') : 'na';
+    const fileName = `${Date.now()}-${skillName}-${batchToken}-${testCaseToken}.json`;
+    const filePath = path.join(runsDir, fileName);
+
+    const telemetry = {
+      skill: skillName,
+      status: details.status,
+      timestamp: details.timestamp,
+      batchId: options.invocation?.batchId,
+      testCaseId: options.invocation?.testCaseId,
+      commandTemplate: details.commandTemplate,
+      renderedCommand: details.renderedCommand,
+      durationMs: details.durationMs,
+      exitCode: details.exitCode,
+      timedOut: details.timedOut,
+      parsedPayload: details.parsedPayload,
+      stdoutLength: details.stdout.length,
+      stderrLength: details.stderr.length,
+      stdoutPreview: truncateTelemetryText(details.stdout),
+      stderrPreview: truncateTelemetryText(details.stderr),
+    };
+
+    fs.writeFileSync(filePath, JSON.stringify(telemetry, null, 2));
+  } catch {
+    // Best-effort telemetry; dispatch result should not fail due to telemetry write issues.
+  }
+}
+
 function runExternalRunner(
   skillName: string,
   options: DispatchOptions,
@@ -154,8 +210,10 @@ function runExternalRunner(
     const elapsedMs = Date.now() - startedAt;
     const nextSkill = SKILL_NEXT_MAP[skillName] ?? 'none';
 
+    const commandTemplate = options.runnerCommand ?? '';
+
     if (!parsed) {
-      return {
+      const report: DispatchReport = {
         skill: skillName,
         status: 'passed',
         timestamp: new Date().toISOString(),
@@ -167,6 +225,21 @@ function runExternalRunner(
         },
         nextSkill,
       };
+
+      writeRunnerTelemetry(skillName, options, {
+        commandTemplate,
+        renderedCommand: command,
+        status: report.status,
+        timestamp: report.timestamp,
+        durationMs: elapsedMs,
+        exitCode: 0,
+        timedOut: 0,
+        stdout,
+        stderr: '',
+        parsedPayload: 0,
+      });
+
+      return report;
     }
 
     const findings = normalizeStringArray(parsed.findings);
@@ -176,7 +249,7 @@ function runExternalRunner(
       ? rawMetrics as Record<string, number>
       : {};
 
-    return {
+    const report: DispatchReport = {
       skill: typeof parsed.skill === 'string' && parsed.skill.trim()
         ? parsed.skill
         : skillName,
@@ -198,6 +271,21 @@ function runExternalRunner(
         ? parsed.nextSkill
         : nextSkill,
     };
+
+    writeRunnerTelemetry(skillName, options, {
+      commandTemplate,
+      renderedCommand: command,
+      status: report.status,
+      timestamp: report.timestamp,
+      durationMs: elapsedMs,
+      exitCode: 0,
+      timedOut: 0,
+      stdout,
+      stderr: '',
+      parsedPayload: 1,
+    });
+
+    return report;
   } catch (error) {
     const err = error as {
       status?: number;
@@ -213,7 +301,7 @@ function runExternalRunner(
     const baseMessage = err.message ?? 'External runner failed';
     const detailMessage = [stderr, stdout].find((value) => value.length > 0) ?? baseMessage;
 
-    return createRunnerFailureReport(
+    const failureReport = createRunnerFailureReport(
       skillName,
       detailMessage,
       'none',
@@ -222,6 +310,21 @@ function runExternalRunner(
         timedOut: err.signal === 'SIGTERM' || err.killed ? 1 : 0,
       },
     );
+
+    writeRunnerTelemetry(skillName, options, {
+      commandTemplate: options.runnerCommand ?? '',
+      renderedCommand: command,
+      status: failureReport.status,
+      timestamp: failureReport.timestamp,
+      durationMs: Date.now() - startedAt,
+      exitCode: typeof err.status === 'number' ? err.status : -1,
+      timedOut: err.signal === 'SIGTERM' || err.killed ? 1 : 0,
+      stdout,
+      stderr,
+      parsedPayload: 0,
+    });
+
+    return failureReport;
   }
 }
 
@@ -243,6 +346,15 @@ export function dispatchSkill(skillName: string, skillsDir: string, options: Dis
   const content = fs.readFileSync(skillPath, 'utf-8');
   const nameMatch = content.match(/^---\nname:\s*(.+)$/m);
   const skill = nameMatch ? nameMatch[1].trim() : skillName;
+
+  const requiresExternalRunner = skillName === 'worker' || skillName === 'fixer';
+  if (requiresExternalRunner && !options.runnerCommand) {
+    return createRunnerFailureReport(
+      skillName,
+      'External sub-agent runner is required for worker/fixer',
+      'none',
+    );
+  }
 
   const usesExternalRunner = Boolean(options.runnerCommand && (skillName === 'worker' || skillName === 'fixer'));
   if (usesExternalRunner) {

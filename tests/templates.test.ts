@@ -53,6 +53,18 @@ describe('Template files', () => {
     expect(content).toContain('## Integration');
     expect(content).toContain('## ICM Rules');
     expect(content).toContain('## Output Format');
+    expect(content).toContain('## Sub-Agent Runner Contract');
+  });
+
+  it('README.md documents strict external runner contract for worker/fixer', () => {
+    const readmePath = path.join(__dirname, '..', 'README.md');
+    expect(fs.existsSync(readmePath)).toBe(true);
+
+    const content = fs.readFileSync(readmePath, 'utf-8');
+    expect(content).toContain('--subagent-runner');
+    expect(content).toContain('{skill}');
+    expect(content.toLowerCase()).toContain('worker/fixer');
+    expect(content.toLowerCase()).toContain('external runner');
   });
 
   it('SYSTEM.md contains Layer 0 content', () => {

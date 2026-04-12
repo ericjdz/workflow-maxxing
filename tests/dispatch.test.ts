@@ -67,6 +67,28 @@ describe('dispatchSkill', () => {
     expect(result.nextSkill).toBe('architecture');
   });
 
+  it('fails worker dispatch when external runner is not configured', () => {
+    const skillsDir = path.join(tempDir, 'skills');
+    fs.mkdirSync(path.join(skillsDir, 'worker'), { recursive: true });
+    fs.writeFileSync(path.join(skillsDir, 'worker', 'SKILL.md'), '---\nname: worker\ndescription: test\n---\n\n## Overview\nTest');
+
+    const result = dispatchSkill('worker', skillsDir);
+
+    expect(result.status).toBe('failed');
+    expect(result.findings.join(' ')).toContain('External sub-agent runner is required');
+  });
+
+  it('fails fixer dispatch when external runner is not configured', () => {
+    const skillsDir = path.join(tempDir, 'skills');
+    fs.mkdirSync(path.join(skillsDir, 'fixer'), { recursive: true });
+    fs.writeFileSync(path.join(skillsDir, 'fixer', 'SKILL.md'), '---\nname: fixer\ndescription: test\n---\n\n## Overview\nTest');
+
+    const result = dispatchSkill('fixer', skillsDir);
+
+    expect(result.status).toBe('failed');
+    expect(result.findings.join(' ')).toContain('External sub-agent runner is required');
+  });
+
   it('uses external runner command for worker skill when configured', () => {
     const skillsDir = path.join(tempDir, 'skills');
     fs.mkdirSync(path.join(skillsDir, 'worker'), { recursive: true });
@@ -108,6 +130,60 @@ describe('dispatchSkill', () => {
     expect(result.status).toBe('passed');
     expect(result.findings).toContain('external runner executed');
     expect(result.nextSkill).toBe('validation');
+  });
+
+  it('writes runner telemetry artifact for external worker dispatch', () => {
+    const skillsDir = path.join(tempDir, 'skills');
+    fs.mkdirSync(path.join(skillsDir, 'worker'), { recursive: true });
+    fs.writeFileSync(path.join(skillsDir, 'worker', 'SKILL.md'), '---\nname: worker\ndescription: test\n---\n\n## Overview\nTest');
+
+    const runnerPath = path.join(tempDir, 'runner-telemetry.js');
+    fs.writeFileSync(
+      runnerPath,
+      [
+        'const skill = process.argv[2];',
+        'const batchId = Number(process.argv[3]);',
+        'const testCaseId = process.argv[4];',
+        'console.log(JSON.stringify({',
+        '  skill,',
+        '  status: "passed",',
+        '  timestamp: "2026-04-08T00:00:00.000Z",',
+        '  findings: ["runner telemetry"],',
+        '  recommendations: ["continue"],',
+        '  metrics: { executionTimeMs: 7 },',
+        '  nextSkill: "validation",',
+        '  batchId,',
+        '  testCaseId,',
+        '}));',
+      ].join('\n'),
+    );
+
+    const runnerCommand = `"${process.execPath}" "${runnerPath}" {skill} {batchId} {testCaseId}`;
+
+    const result = dispatchSkill('worker', skillsDir, {
+      workspacePath: tempDir,
+      runnerCommand,
+      invocation: {
+        skill: 'worker',
+        batchId: 1,
+        testCaseId: 'tc-telemetry',
+      },
+    });
+
+    expect(result.status).toBe('passed');
+
+    const runsDir = path.join(tempDir, '.agents', 'iteration', 'runs');
+    expect(fs.existsSync(runsDir)).toBe(true);
+    const telemetryFiles = fs.readdirSync(runsDir).filter((f) => f.endsWith('.json'));
+    expect(telemetryFiles.length).toBeGreaterThan(0);
+
+    const telemetry = JSON.parse(fs.readFileSync(path.join(runsDir, telemetryFiles[0]), 'utf-8'));
+    expect(telemetry.skill).toBe('worker');
+    expect(telemetry.status).toBe('passed');
+    expect(telemetry.batchId).toBe(1);
+    expect(telemetry.testCaseId).toBe('tc-telemetry');
+    expect(telemetry.commandTemplate).toContain('{skill}');
+    expect(typeof telemetry.durationMs).toBe('number');
   });
 
   it('returns failed status when external runner command fails', () => {

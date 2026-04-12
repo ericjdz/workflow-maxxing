@@ -8,6 +8,7 @@ const repoRoot = path.join(__dirname, '..');
 const cliPath = path.join(repoRoot, 'dist', 'index.js');
 const templatesPath = path.join(repoRoot, 'templates');
 const orchestratorPath = path.join(repoRoot, 'dist', 'scripts', 'orchestrator.js');
+const dispatchPath = path.join(repoRoot, 'dist', 'scripts', 'dispatch.js');
 
 function writeFileWithParents(filePath: string, content: string): void {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -71,10 +72,18 @@ function createBasicOrchestratorWorkspace(baseDir: string): string {
   return workspacePath;
 }
 
-function runOrchestrator(orchestratorPath: string, workspacePath: string): string {
+function runOrchestrator(orchestratorPath: string, workspacePath: string, extraArgs: string[] = []): string {
   return execFileSync(
     process.execPath,
-    [orchestratorPath, '--workspace', workspacePath, '--batch-size', '2'],
+    [orchestratorPath, '--workspace', workspacePath, '--batch-size', '2', ...extraArgs],
+    { encoding: 'utf-8' },
+  );
+}
+
+function runDispatch(dispatchScriptPath: string, args: string[]): string {
+  return execFileSync(
+    process.execPath,
+    [dispatchScriptPath, ...args],
     { encoding: 'utf-8' },
   );
 }
@@ -270,5 +279,46 @@ describe('orchestrator integration', () => {
     const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
     expect(summary.totalBatches).toBeGreaterThan(0);
     expect(typeof summary.timestamp).toBe('string');
+  });
+
+  it('worker dispatch fails without external runner command', () => {
+    const workspacePath = createBasicOrchestratorWorkspace(orchestratorTempDir);
+
+    const output = runDispatch(dispatchPath, [
+      '--skill', 'worker',
+      '--workspace', workspacePath,
+      '--batch-id', '1',
+      '--test-case-id', 'tc-001',
+    ]);
+
+    const report = JSON.parse(output);
+    expect(report.status).toBe('failed');
+    expect(report.findings.join(' ')).toContain('External sub-agent runner is required');
+  });
+
+  it('dispatch-recursion runner command does not produce a successful worker execution', () => {
+    const workspacePath = createBasicOrchestratorWorkspace(orchestratorTempDir);
+    const recursiveRunner = `"${process.execPath}" "${dispatchPath}" --skill {skill} --workspace "{workspace}" --batch-id {batchId} --test-case-id {testCaseId}`;
+
+    const output = runDispatch(dispatchPath, [
+      '--skill', 'worker',
+      '--workspace', workspacePath,
+      '--batch-id', '1',
+      '--test-case-id', 'tc-002',
+      '--runner-command', recursiveRunner,
+    ]);
+
+    const report = JSON.parse(output);
+    expect(report.status).toBe('failed');
+  });
+
+  it('orchestrator does not mark passing batches when worker execution cannot run', () => {
+    const workspacePath = createBasicOrchestratorWorkspace(orchestratorTempDir);
+
+    const output = runOrchestrator(orchestratorPath, workspacePath, ['--score-threshold', '95']);
+    const result = JSON.parse(output);
+
+    expect(result.passedBatches).toBe(0);
+    expect(result.failedBatches + result.escalatedBatches).toBe(result.totalBatches);
   });
 });
