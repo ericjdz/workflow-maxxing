@@ -16,68 +16,78 @@ Most agent workspaces drift over time because prompts are underspecified and con
 - **Create invokable agents** - the skill can build autonomous agents that can be invoked with `@` in your workspace
 - **Self-improving agents** - created agents run through iteration loops to ensure robustness
 
-## Requirements
+## Quick Start
 
-- Node.js 18+
-- `npx` available in your shell
-
-## Install
+### One Command Does Everything
 
 ```bash
-# OpenCode (default target)
+# Create workspace with agent (recommended)
+npx workspace-maxxing init
+
+# Install skill to OpenCode
+npx workspace-maxxing install
+
+# Or use the old way (still works)
 npx workspace-maxxing --opencode
+```
 
-# Claude Code
+That's it! No extra flags needed.
+
+## Two Main Use Cases
+
+### Use Case 1: Create a New Workspace with Agent
+
+When you want to start a new workflow project:
+
+```bash
+# Basic (creates "My Workspace" with 3 stages)
+npx workspace-maxxing init
+
+# Custom name
+npx workspace-maxxing init --workspace-name "Daily Digest"
+
+# Custom stages
+npx workspace-maxxing init --stages "01-input,02-process,03-output,04-deploy"
+
+# Without agent (backward compatible)
+npx workspace-maxxing init --no-agent
+
+# To specific folder
+npx workspace-maxxing init --output "./my-workspace"
+```
+
+This creates:
+- ICM workspace folder structure
+- Invokable `@agent` in `.agents/skills/`
+- Runs self-improvement loop (score >= 85)
+
+### Use Case 2: Install the Skill to Your Project
+
+When you want to use workspace-maxxing as a skill in your AI agent:
+
+```bash
+# Install to current project (OpenCode)
+npx workspace-maxxing install
+
+# Install to specific platform
+npx workspace-maxxing --opencode
 npx workspace-maxxing --claude
-
-# GitHub Copilot
 npx workspace-maxxing --copilot
-
-# Gemini CLI
 npx workspace-maxxing --gemini
 ```
 
-### Install Targets
+This installs the skill to `.agents/skills/workspace-maxxing/` so you can invoke it in your AI agent session with `@workspace-maxxing`.
 
-| Target | Flag | Install Path |
-|---|---|---|
-| OpenCode | `--opencode` | `.agents/skills/workspace-maxxing/` |
-| Claude Code | `--claude` | `.claude/skills/` |
-| GitHub Copilot | `--copilot` | `.github/copilot-instructions/` |
-| Gemini CLI | `--gemini` | `.gemini/skills/` |
+## CLI Options
 
-## Quick Start
-
-### Option 1: Install the Skill
-
-1. Install to your preferred target with `npx workspace-maxxing --<target>`.
-2. Open a new agent session.
-3. Invoke the `workspace-maxxing` skill.
-4. Approve the proposed workflow structure.
-5. Let the agent scaffold, validate, and iterate until quality gates pass.
-
-### Option 2: Create a Workspace with Agent
-
-```bash
-# Create workspace with invokable agent (default)
-npx workspace-maxxing --create-workspace --workspace-name "Daily Digest" --stages "01-input,02-process,03-output"
-
-# Create workspace without agent (backward compatible)
-npx workspace-maxxing --create-workspace --workspace-name "My Workflow" --no-agent
-
-# Custom agent name
-npx workspace-maxxing --create-workspace --workspace-name "AI News" --agent-name "@news-agent"
-
-# Custom iteration settings
-npx workspace-maxxing --create-workspace --workspace-name "My Workflow" --threshold 90 --max-iterations 5
-```
-
-### CLI Options
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--create-workspace` | - | Enable workspace creation mode |
-| `--workspace-name` | "My Workspace" | Name of the workspace |
+| Option | Description |
+|--------|-------------|
+| `init` | Create workspace with agent (default command) |
+| `install` | Install skill to current project |
+| `--workspace-name` | Name of the workspace |
+| `--stages` | Comma-separated stages |
+| `--output` | Output directory |
+| `--no-agent` | Create workspace without agent |
 | `--stages` | "01-input,02-process,03-output" | Comma-separated stage names |
 | `--output` | "./workspace" | Output directory |
 | `--agent-name` | auto-generated (@workspace-name) | Custom agent name |

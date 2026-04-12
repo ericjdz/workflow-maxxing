@@ -12,13 +12,17 @@ function showHelp(): void {
 workspace-maxxing — npx-installable skill for AI agents
 
 Usage:
-  npx workspace-maxxing [options]
+  npx workspace-maxxing [command]
+
+Commands (no flags needed):
+  init              Create a new workspace with invokable agent (default)
+  install           Install the skill to current project (for OpenCode)
 
 Installation Options:
-  --opencode    Install skill for OpenCode agents (default)
-  --claude      Install skill for Claude Code agents
-  --copilot     Install skill for GitHub Copilot agents
-  --gemini      Install skill for Gemini CLI agents
+  --opencode        Install skill for OpenCode agents
+  --claude          Install skill for Claude Code agents
+  --copilot         Install skill for GitHub Copilot agents
+  --gemini          Install skill for Gemini CLI agents
 
 Workspace Creation Options:
   --create-workspace              Create a new workspace with agent
@@ -31,20 +35,18 @@ Workspace Creation Options:
   --max-iterations <n>           Max agent iterations (default: 3)
 
 Examples:
-  # Install skill for OpenCode
-  npx workspace-maxxing --opencode
+  # Create workspace with agent (recommended)
+  npx workspace-maxxing init
 
-  # Create workspace with agent
-  npx workspace-maxxing --create-workspace --workspace-name "Daily Digest" --stages "01-input,02-process,03-output"
-
-  # Create workspace in specific folder
-  npx workspace-maxxing --create-workspace --workspace-name "My Workflow" --output "./my-workspace"
+  # Create workspace with custom name
+  npx workspace-maxxing init --workspace-name "Daily Digest"
 
   # Create workspace without agent
-  npx workspace-maxxing --create-workspace --workspace-name "My Workflow" --no-agent
+  npx workspace-maxxing init --no-agent
 
-  # Create workspace with custom agent name
-  npx workspace-maxxing --create-workspace --workspace-name "AI News" --agent-name "@news-agent"
+  # Install skill to OpenCode
+  npx workspace-maxxing install
+  npx workspace-maxxing --opencode
 `);
 }
 
@@ -142,13 +144,42 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  // Check for workspace creation
-  if (args.includes('--create-workspace')) {
-    await createWorkspace(args);
+  // Check for init command (create workspace with agent)
+  if (args.includes('init') || args.includes('--create-workspace')) {
+    // Remove 'init' from args if present, keep other flags
+    const cleanArgs = args.filter(a => a !== 'init' && a !== '--create-workspace');
+    await createWorkspace(cleanArgs);
     return;
   }
 
-  // Check for install targets
+  // Check for install command
+  if (args.includes('install')) {
+    const cwd = process.cwd();
+    const projectRoot = detectProjectRoot(cwd);
+
+    if (projectRoot !== cwd) {
+      console.log(`Detected project root: ${projectRoot}`);
+    }
+
+    const templatesDir =
+      process.env.WORKSPACE_MAXXING_TEMPLATES ??
+      path.join(__dirname, '..', 'templates');
+
+    console.log(`Installing workspace-maxxing skill...`);
+    const result = await installSkill(projectRoot, templatesDir, 'opencode');
+
+    if (result.success) {
+      console.log(`Skill installed to: ${result.skillPath}`);
+      console.log(`Open a new OpenCode session and invoke the workspace-maxxing skill to get started.`);
+    } else {
+      console.error(`Installation failed: ${result.error}`);
+      process.exit(1);
+    }
+
+    return;
+  }
+
+  // Check for install targets (--opencode, --claude, etc.)
   const agentFlags: AgentTarget[] = ['opencode', 'claude', 'copilot', 'gemini'];
   const detectedAgent = agentFlags.find((flag) => args.includes(`--${flag}`));
 
@@ -178,9 +209,8 @@ async function main(): Promise<void> {
     return;
   }
 
-  console.error(`Unknown flag: ${args.find((a) => a.startsWith('--'))}`);
-  console.error('Run "npx workspace-maxxing --help" for usage.');
-  process.exit(1);
+  // Default: treat as workspace creation (backward compatible)
+  await createWorkspace(args);
 }
 
 main().catch((error) => {
