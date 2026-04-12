@@ -69,7 +69,7 @@ function copyDirSync(src: string, dest: string): void {
 
 /**
  * Install the workspace-maxxing skill into a project.
- * Copies SKILL.md, .workspace-templates/, and scripts/ to the agent-specific skill directory.
+ * Copies SKILL.md, .workspace-templates/, scripts/, and skills/ to the agent-specific skill directory.
  */
 export async function installSkill(
   projectRoot: string,
@@ -95,6 +95,13 @@ export async function installSkill(
     if (fs.existsSync(scriptsSrc)) {
       const scriptsDest = path.join(skillDir, 'scripts');
       copyDirSync(scriptsSrc, scriptsDest);
+    }
+
+    // Copy skills/ sub-directory for sub-skill invocation
+    const skillsSrc = path.join(templatesDir, '.workspace-templates', 'skills');
+    if (fs.existsSync(skillsSrc)) {
+      const skillsDest = path.join(skillDir, 'skills');
+      copyDirSync(skillsSrc, skillsDest);
     }
 
     return { success: true, skillPath: skillDir };

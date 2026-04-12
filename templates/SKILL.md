@@ -18,6 +18,72 @@ Autonomous workflow system that creates, validates, and improves ICM-compliant w
 - User asks to run test cases against a workspace
 - **User asks to create an agent for a specific task** (e.g., "create a daily digest agent", "make a news aggregator agent")
 
+## Tool Discovery & Agent Harness
+
+This skill is designed to **fully utilize its agent harness**. When running:
+
+### 1. Tool Discovery
+
+At the start of execution (especially during RESEARCH or ARCHITECTURE phases):
+- Scan available tools in the workspace (check `00-meta/tools.md` or `tools/` directory)
+- Look for MCP tools that could assist with the workflow
+- Use the **tooling** sub-skill to assess and install needed tools: `/skill tooling --workspace ./workspace`
+- Tools should be leveraged to enhance research, validation, and iteration
+
+### 2. Sub-Skill Invocation
+
+All sub-skills are invokable via **slash command** in your AI agent session:
+
+| Command | Sub-Skill | Purpose |
+|---------|-----------|---------|
+| `/skill research` | `research` | Conduct research phase |
+| `/skill architecture` | `architecture` | Design workspace architecture |
+| `/skill validation` | `validation` | Validate workspace ICM compliance |
+| `/skill iteration` | `iteration` | Run improvement iteration |
+| `/skill testing` | `testing` | Generate and run tests |
+| `/skill tooling` | `tooling` | Assess and install tools |
+| `/skill prompt-engineering` | `prompt-engineering` | Improve prompt quality |
+| `/skill worker` | `worker` | Execute worker task |
+| `/skill fixer` | `fixer` | Fix failing test cases |
+
+**To invoke a sub-skill**, use the dispatch script:
+```bash
+node skills/dispatch.ts --skill <sub-skill-name> --workspace ./workspace
+```
+
+Or if your agent supports slash commands:
+```
+/skill research --workspace ./workspace
+```
+
+### 3. Full Agent Harness Usage
+
+This skill provides a complete agent development harness:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ workspace-maxxing                                              │
+├─────────────────────────────────────────────────────────────────┤
+│  TOOLS: Look for available tools, install via tooling skill    │
+│    ↓                                                            │
+│  RESEARCH: Use /skill research to gather requirements         │
+│    ↓                                                            │
+│  ARCHITECTURE: Use /skill architecture to design structure    │
+│    ↓                                                            │
+│  BUILD: Use scaffold.ts to create workspace                   │
+│    ↓                                                            │
+│  VALIDATE: Use /skill validation to check ICM compliance     │
+│    ↓                                                            │
+│  ITERATE: Use /skill iteration for autonomous improvement     │
+│    ↓                                                            │
+│  TOOLING: Use /skill tooling to add more tools                 │
+│    ↓                                                            │
+│  DELIVER: Complete workspace with validated agents            │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Never skip sub-skills** - each one contributes to a robust workspace.
+
 ## Agent Creation Workflow
 
 When you invoke `workspace-maxxing` with a request to create an agent (e.g., "create a daily digest agent"), follow this flow:
@@ -42,6 +108,7 @@ User: "Create a daily digest agent"
 
 ```
 -> Extract purpose: "Daily Digest"
+-> DISCOVER TOOLS: Use /skill tooling to find relevant tools (e.g., RSS, web scraping, summarization)
 -> Create workspace with stages: 01-input, 02-process, 03-output
 -> Create agent: @daily-digest in .agents/skills/daily-digest/
 -> Run iteration:
@@ -51,6 +118,8 @@ User: "Create a daily digest agent"
    - Score >= 85? Yes -> deliver
 -> Agent is ready to invoke with @daily-digest
 ```
+
+**Key**: Always look for and leverage tools when creating agents or workspaces.
 
 ## When Not to Use
 
@@ -142,6 +211,25 @@ node scripts/orchestrator.ts --workspace ./workspace --batch-size 3 --score-thre
 - Use telemetry artifacts under `.agents/iteration/runs/` to diagnose command/rendering or payload issues.
 
 ## Sub-Skill Dispatch
+
+**All sub-skills are invokable via slash command in your AI agent session:**
+
+| Command | Sub-Skill | Purpose |
+|---------|-----------|---------|
+| `/skill research` | `research` | Conduct research phase |
+| `/skill architecture` | `architecture` | Design workspace architecture |
+| `/skill validation` | `validation` | Validate workspace ICM compliance |
+| `/skill iteration` | `iteration` | Run improvement iteration |
+| `/skill testing` | `testing` | Generate and run tests |
+| `/skill tooling` | `tooling` | Assess and install tools |
+| `/skill prompt-engineering` | `prompt-engineering` | Improve prompt quality |
+| `/skill worker` | `worker` | Execute worker task |
+| `/skill fixer` | `fixer` | Fix failing test cases |
+
+**To invoke a sub-skill**, use the dispatch script:
+```bash
+node skills/dispatch.ts --skill <sub-skill-name> --workspace ./workspace
+```
 
 | Condition | Sub-Skill | Command |
 |-----------|-----------|---------|
