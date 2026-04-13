@@ -140,22 +140,35 @@ When you receive a workspace request (e.g., "I need a gym planning workspace"):
    - What is being automated?
    - Example: "gym planning" = workout program creation and scheduling
 
-2. **Analyze natural stages**
-   - What are the logical phases of this workflow?
-   - Example for gym planning:
+2. **Analyze natural stages (DYNAMIC - not fixed to 3!)**
+   - How many logical phases does this workflow have?
+   - Simple workflow (2-3 phases): 01-input, 02-process
+   - Medium workflow (3-4 phases): 01-input, 02-process, 03-output
+   - Complex workflow (5+ phases): 01-discover, 02-validate, 03-enrich, 04-format, 05-export
+   - Example for gym planning (3 stages):
      * 01-assess: Input goals, availability, equipment
      * 02-design: Create workout program
      * 03-schedule: Generate weekly schedule
 
-3. **Determine inputs and outputs**
+3. **Discover installable tools (SEARCH REQUIRED!)**
+   - Search for MCPs or CLI tools that can help this workflow
+   - Use web search or GitHub search for: "MCP servers for [domain]" or "[domain] CLI tool"
+   - Example searches:
+     * "workout tracking MCP server"
+     * "fitness API CLI tool"
+     * "exercise database API"
+   - Document found tools in research findings
+
+4. **Determine inputs and outputs**
    - What data goes IN to each stage?
    - What markdown artifacts come OUT?
 
-4. **Identify tooling needs**
-   - What tools does this workflow need?
+5. **Identify tooling needs**
+   - What native tools does the AI already have?
+   - What MCPs should be installed?
    - Document in 00-meta/tools.md
 
-**DO THIS RESEARCH INLINE** - Think through these questions and document your findings in your response. You don't need to run any scripts.
+**DO THIS RESEARCH INLINE** - Think through these questions and document your findings. SEARCH for tools!
 
 ### PHASE 2: ARCHITECTURE (Inline)
 
@@ -267,22 +280,27 @@ User: "I need a gym planning workspace"
 
 **RESEARCH (inline):**
 - Workflow type: Workout program creation and scheduling
-- Natural stages:
-  * 01-assess: Input goals, availability, equipment
+- Natural stages (determined by complexity):
+  * 01-assess: Input goals, availability, equipment (3 stages)
   * 02-design: Create workout program
   * 03-schedule: Generate weekly schedule
+- **Tool Discovery (SEARCH for installable tools):**
+  * Search: "workout tracking MCP server GitHub"
+  * MCPs found: SomeFit API, WorkoutTracker CLI
+  * Document in 00-meta/tools.md with install notes
 - Inputs: User's fitness goals, days available, equipment
 - Outputs: Weekly workout schedule, exercise library
 
 **ARCHITECTURE (inline):**
 - Stage folders: 01-assess, 02-design, 03-schedule
 - Create SYSTEM.md, CONTEXT.md, stage CONTEXT.md files
+- Include discovered tools in tool inventory
 
 **BUILD:**
 - Create folders and files
 
 **DELIVER:**
-- Create @gym-planner agent
+- Create @gym-planner agent with tool references
 
 That's it - no scripts to run!
 
