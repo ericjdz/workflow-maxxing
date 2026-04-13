@@ -35,6 +35,10 @@ export function createAgent(options: AgentOptions): void {
   // Write SKILL.md
   const skillContent = generateSkillMd(name, purpose);
   fs.writeFileSync(path.join(agentDir, 'SKILL.md'), skillContent);
+
+  // Write skill index for proper discovery by name
+  const indexContent = `name: ${dirName}\ndescription: "${purpose}"\n`;
+  fs.writeFileSync(path.join(agentDir, '.skill'), indexContent);
   
   // Write config.json
   const configContent = JSON.stringify({
