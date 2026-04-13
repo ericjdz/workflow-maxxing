@@ -133,48 +133,78 @@ This skill provides a complete agent development harness:
 
 ## Agent Creation Workflow
 
-When you invoke `workspace-maxxing` with a request to create an agent (e.g., "create a lead scraping agent"), follow this flow:
+When you invoke `workspace-maxxing` with a request to create a workspace or agent, follow this flow:
 
 ```
-1. Parse the request to extract the agent purpose (e.g., "Lead Scraper")
-2. DISCOVER TOOLS:
-   - Check what native tools are available in the AI agent (playwright, puppeteer, curl, etc.)
-   - Verify tool accessibility by running a simple test
-   - If native tools are insufficient, use tooling sub-skill to install MCPs or CLI tools
+1. ANALYZE the user's request
+   - What workflow type are they asking for?
+   - What are the natural stages of this workflow?
+   - Examples:
+     * Lead generation → 01-discover, 02-enrich, 03-export
+     * Content creation → 01-research, 02-write, 03-edit
+     * Code review → 01-submit, 02-review, 03-feedback
+     * Meeting notes → 01-import, 02-extract, 03-organize
+
+2. DETERMINE stages based on workflow analysis
+   - Think about what this workflow ACTUALLY needs
+   - Use meaningful stage names that describe what happens
+   - NOT: 01-input, 02-process, 03-output (too generic!)
+   - YES: Stages that match the actual workflow steps
+
+3. DISCOVER TOOLS:
+   - Check what native tools are available in the AI agent
+   - Verify tool accessibility by running a test
+   - If tools are missing, use tooling sub-skill to install
    - Document tools in 00-meta/tools.md
-3. Create ICM workspace structure (SYSTEM.md, CONTEXT.md, stage folders)
-4. Create invokable agent in .agents/skills/@<purpose>/
-   - Include tool usage instructions in the agent prompts
-5. Run self-improvement loop on the agent
-   - Generate test cases (edge, empty, varied inputs)
-   - Validate agent handling
-   - Score robustness (0-100)
-   - If score < 85: improve prompts, retry
-   - Repeat until score >= 85 or max iterations (3)
-6. Install agent for platform (OpenCode/Claude/Copilot/Gemini)
+
+4. Create ICM workspace structure with DETERMINED stages
+   - Use the stages you identified in step 2
+   - Create SYSTEM.md, CONTEXT.md, stage folders
+
+5. Create invokable agent in .agents/skills/@<purpose>/
+
+6. Run self-improvement loop
+   - Generate test cases, validate, score
+   - Improve until score >= 85 or max iterations
+
 7. Deliver workspace with robust agent
 ```
 
-### Agent Creation with Tool Discovery Example
+**IMPORTANT - Stage Determination:**
+- NEVER use "01-input, 02-process, 03-output" as default stages
+- ANALYZE what the user actually needs
+- Use stages that make sense for THAT specific workflow
+
+### Agent Creation Example
 
 User: "Create an agent that scrapes internet data for leads"
 
 ```
--> Extract purpose: "Lead Scraper"
+-> ANALYZE: Lead generation workflow
+   - What's the natural flow?
+   - Discover prospects → Enrich data → Export results
+   - Stages: 01-discover, 02-enrich, 03-export
+
 -> DISCOVER TOOLS:
-   - Check: Does agent have playwright? → Yes, test it works
-   - Check: Does agent have curl/wget? → Yes, verify accessible
-   - Check: Any MCP servers for scraping? → No, need to install
-   - Action: Run tooling sub-skill to install puppeteer or similar
-   - Verify: Test the tool with a simple request
--> Create workspace with stages: 01-input, 02-process, 03-output
--> Create agent: @lead-scraper with tool instructions in prompts
--> Run iteration:
-   - Test: scraping a page -> works
-   - Test: handling empty pages -> handles gracefully
-   - Test: rate limiting -> respects limits
-   - Score >= 85? Yes -> deliver
--> Agent is ready to invoke with @lead-scraper
+   - Check: playwright, curl available? → Test and verify
+   - Missing tools? Use tooling sub-skill to install
+
+-> Create workspace with stages: 01-discover, 02-enrich, 03-export
+
+-> Create agent: @lead-scraper
+
+-> Run iteration until score >= 85
+
+-> @lead-scraper is ready
+```
+
+User: "Create a content workflow"
+```
+-> ANALYZE: Content creation
+   - Research → Write → Edit → Publish
+   - Stages: 01-research, 02-write, 03-edit, 04-publish
+-> Create workspace
+-> @content-creator is ready
 ```
 
 **Tool Discovery is MANDATORY** - always check available tools, verify accessibility, and install missing tools before delivering the agent.
@@ -412,7 +442,7 @@ The workspace-maxxing skill can now create both the workspace folder structure A
 
 ```bash
 # Create workspace WITH agent (default)
-npx workspace-maxxing --create-workspace --workspace-name "Daily Digest" --stages "01-input,02-process,03-output"
+npx workspace-maxxing --create-workspace --workspace-name "Daily Digest"
 
 # Create workspace WITHOUT agent (backward compatible)
 npx workspace-maxxing --create-workspace --workspace-name "My Workflow" --no-agent

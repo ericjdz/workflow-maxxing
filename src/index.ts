@@ -59,7 +59,7 @@ Installation Options:
 Workspace Creation Options:
   --create-workspace              Create a new workspace with agent
   --workspace-name <name>        Name of the workspace (default: "My Workspace")
-  --stages <stages>              Comma-separated stages (default: "01-input,02-process,03-output")
+  --stages <stages>              Comma-separated stages (optional - AI determines automatically)
   --output <path>                Output directory (default: "./workspace")
   --agent-name <name>            Custom agent name (default: auto-generated from workspace name)
   --no-agent                     Create workspace without the invokable agent
@@ -93,8 +93,12 @@ function hasFlag(args: string[], flag: string): boolean {
 
 async function createWorkspace(args: string[], templatesDir: string): Promise<void> {
   const workspaceName = extractOption(args, '--workspace-name') ?? 'My Workspace';
-  const stagesStr = extractOption(args, '--stages') ?? '01-input,02-process,03-output';
-  const stages = stagesStr.split(',').map(s => s.trim()).filter(Boolean);
+  const stagesStr = extractOption(args, '--stages') ?? '';
+  if (!stagesStr) {
+    // When no stages provided, CLI defaults to placeholder (skill will determine during invoke)
+    console.log('Stages will be determined based on workflow analysis.');
+  }
+  const stages = stagesStr ? stagesStr.split(',').map(s => s.trim()).filter(Boolean) : [];
   
   const withAgent = !hasFlag(args, '--no-agent');
   const agentNameOption = extractOption(args, '--agent-name');

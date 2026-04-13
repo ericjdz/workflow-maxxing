@@ -12,7 +12,7 @@ export function scaffoldWorkspace(options: ScaffoldOptions): void {
   const { name, stages, output, force = false } = options;
 
   if (!stages || stages.length === 0) {
-    throw new Error('stages list cannot be empty');
+    throw new Error('stages list cannot be empty. AI should determine stages based on workflow analysis.');
   }
 
   const outputDir = path.resolve(output);
