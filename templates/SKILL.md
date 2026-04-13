@@ -128,46 +128,85 @@ This skill provides a complete agent development harness:
 │  DELIVER: Complete workspace with validated agents            │
 └─────────────────────────────────────────────────────────────────┘
 ```
+## IMPORTANT - Inline Workflow
 
-**Never skip sub-skills** - each one contributes to a robust workspace.
+Do NOT try to run dispatch scripts or external commands. Instead, follow the RESEARCH and ARCHITECTURE phases **inline** within your conversation:
+
+### PHASE 1: RESEARCH ( Inline)
+
+When you receive a workspace request (e.g., "I need a gym planning workspace"):
+
+1. **Identify the workflow type**
+   - What is being automated?
+   - Example: "gym planning" = workout program creation and scheduling
+
+2. **Analyze natural stages**
+   - What are the logical phases of this workflow?
+   - Example for gym planning:
+     * 01-assess: Input goals, availability, equipment
+     * 02-design: Create workout program
+     * 03-schedule: Generate weekly schedule
+
+3. **Determine inputs and outputs**
+   - What data goes IN to each stage?
+   - What markdown artifacts come OUT?
+
+4. **Identify tooling needs**
+   - What tools does this workflow need?
+   - Document in 00-meta/tools.md
+
+**DO THIS RESEARCH INLINE** - Think through these questions and document your findings in your response. You don't need to run any scripts.
+
+### PHASE 2: ARCHITECTURE (Inline)
+
+After research, design the workspace structure:
+
+1. **Define stage folders** based on your research
+2. **Create SYSTEM.md** with folder map and rules
+3. **Create CONTEXT.md** with routing table
+4. **Create each stage's CONTEXT.md**
+
+**DO THIS ARCHITECTURE INLINE** - Create the files directly. No scripts needed.
+
+### PHASE 3: BUILD
+
+Create the ICM workspace with the stages you determined.
+
+### PHASE 4: VALIDATE
+
+Check that the structure follows ICM rules.
+
+### PHASE 5: DELIVER
+
+Create the invokable agent and deliver.
+
+---
 
 ## Agent Creation Workflow
 
-When you invoke `workspace-maxxing` with a request to create a workspace or agent, follow this flow:
+When you invoke `workspace-maxxing` with a request, follow this inline flow:
 
 ```
-1. ANALYZE the user's request
-   - What workflow type are they asking for?
-   - What are the natural stages of this workflow?
-   - Examples:
-     * Lead generation → 01-discover, 02-enrich, 03-export
-     * Content creation → 01-research, 02-write, 03-edit
-     * Code review → 01-submit, 02-review, 03-feedback
-     * Meeting notes → 01-import, 02-extract, 03-organize
+1. RESEARCH (inline)
+   - Analyze the request
+   - Determine stages
+   - Identify inputs/outputs
+   - Document findings
 
-2. DETERMINE stages based on workflow analysis
-   - Think about what this workflow ACTUALLY needs
-   - Use meaningful stage names that describe what happens
-   - NOT: 01-input, 02-process, 03-output (too generic!)
-   - YES: Stages that match the actual workflow steps
+2. ARCHITECTURE (inline)
+   - Design folder structure
+   - Create SYSTEM.md, CONTEXT.md
 
-3. DISCOVER TOOLS:
-   - Check what native tools are available in the AI agent
-   - Verify tool accessibility by running a test
-   - If tools are missing, use tooling sub-skill to install
-   - Document tools in 00-meta/tools.md
+3. BUILD
+   - Create stage folders
+   - Create CONTEXT.md files
 
-4. Create ICM workspace structure with DETERMINED stages
-   - Use the stages you identified in step 2
-   - Create SYSTEM.md, CONTEXT.md, stage folders
+4. VALIDATE
+   - Check ICM compliance
 
-5. Create invokable agent in .agents/skills/@<purpose>/
-
-6. Run self-improvement loop
-   - Generate test cases, validate, score
-   - Improve until score >= 85 or max iterations
-
-7. Deliver workspace with robust agent
+5. DELIVER
+   - Create @agent
+   - Test if needed
 ```
 
 **IMPORTANT - Stage Determination:**
@@ -175,37 +214,30 @@ When you invoke `workspace-maxxing` with a request to create a workspace or agen
 - ANALYZE what the user actually needs
 - Use stages that make sense for THAT specific workflow
 
-### Agent Creation Example
+### Inline Example
 
-User: "Create an agent that scrapes internet data for leads"
+User: "I need a gym planning workspace"
 
-```
--> ANALYZE: Lead generation workflow
-   - What's the natural flow?
-   - Discover prospects → Enrich data → Export results
-   - Stages: 01-discover, 02-enrich, 03-export
+**RESEARCH (inline):**
+- Workflow type: Workout program creation and scheduling
+- Natural stages:
+  * 01-assess: Input goals, availability, equipment
+  * 02-design: Create workout program
+  * 03-schedule: Generate weekly schedule
+- Inputs: User's fitness goals, days available, equipment
+- Outputs: Weekly workout schedule, exercise library
 
--> DISCOVER TOOLS:
-   - Check: playwright, curl available? → Test and verify
-   - Missing tools? Use tooling sub-skill to install
+**ARCHITECTURE (inline):**
+- Stage folders: 01-assess, 02-design, 03-schedule
+- Create SYSTEM.md, CONTEXT.md, stage CONTEXT.md files
 
--> Create workspace with stages: 01-discover, 02-enrich, 03-export
+**BUILD:**
+- Create folders and files
 
--> Create agent: @lead-scraper
+**DELIVER:**
+- Create @gym-planner agent
 
--> Run iteration until score >= 85
-
--> @lead-scraper is ready
-```
-
-User: "Create a content workflow"
-```
--> ANALYZE: Content creation
-   - Research → Write → Edit → Publish
-   - Stages: 01-research, 02-write, 03-edit, 04-publish
--> Create workspace
--> @content-creator is ready
-```
+That's it - no scripts to run!
 
 **Tool Discovery is MANDATORY** - always check available tools, verify accessibility, and install missing tools before delivering the agent.
 
@@ -322,17 +354,7 @@ node skills/dispatch.ts --skill <sub-skill-name> --workspace ./workspace
 
 | Condition | Sub-Skill | Command |
 |-----------|-----------|---------|
-| Starting new workflow | `research` | `node scripts/dispatch.ts --skill research --workspace ./workspace` |
-| After research complete | `architecture` | `node scripts/dispatch.ts --skill architecture --workspace ./workspace` |
-| After architecture approved | (use scaffold.ts) | `node scripts/scaffold.ts --name "<name>" --stages "<stages>" --output ./workspace` |
-| After building | `validation` | `node scripts/dispatch.ts --skill validation --workspace ./workspace` |
-| Running autonomous iteration | (use orchestrator.ts) | `node scripts/orchestrator.ts --workspace ./workspace --subagent-runner "<runner>"` |
-| Worker execution | `worker` | `node scripts/dispatch.ts --skill worker --workspace ./workspace --batch-id <N> --runner-command "<runner {skill} {workspace} {batchId} {testCaseId}>"` |
-| Fix loop | `fixer` | `node scripts/dispatch.ts --skill fixer --workspace ./workspace --batch-id <N> --runner-command "<runner {skill} {workspace} {batchId} {testCaseId}>"` |
-| Manual condition loop only (not orchestrator batch loop): score < 85 due to prompt quality | `prompt-engineering` | `node scripts/dispatch.ts --skill prompt-engineering --workspace ./workspace` |
-| Manual condition loop only (not orchestrator batch loop): no tests exist | `testing` | `node scripts/dispatch.ts --skill testing --workspace ./workspace` |
-| Manual condition loop only (not orchestrator batch loop): score plateaued across full runs | `iteration` | `node scripts/dispatch.ts --skill iteration --workspace ./workspace` |
-| Manual condition loop only (not orchestrator batch loop): tools missing | `tooling` | `node scripts/dispatch.ts --skill tooling --workspace ./workspace` |
+| All requests | Use inline workflow | Follow RESEARCH → ARCHITECTURE → BUILD → VALIDATE → DELIVER inline |
 
 ## Available Scripts
 
@@ -398,6 +420,8 @@ Loads and executes sub-skill workflows. Supports parallel dispatch.
 
 ```bash
 node scripts/dispatch.ts --skill <name> --workspace ./workspace [--batch-id <N>] [--parallel --invocations <path>]
+
+**Note:** These scripts are optional. The preferred method is to follow the inline workflow (RESEARCH → ARCHITECTURE → BUILD → VALIDATE → DELIVER) directly in conversation.
 ```
 
 ## Anti-Rationalization Table
