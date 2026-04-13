@@ -276,23 +276,22 @@ When you invoke `workspace-maxxing` with a request, follow this inline flow:
 
 ### Inline Example
 
-User: "I need a gym planning workspace"
+User: "I need a [any] workspace"
 
 **RESEARCH (inline):**
-- Workflow type: Workout program creation and scheduling
+- Workflow type: [What is being automated]
 - Natural stages (determined by complexity):
-  * 01-assess: Input goals, availability, equipment (3 stages)
-  * 02-design: Create workout program
-  * 03-schedule: Generate weekly schedule
+  * Simple: 01-input, 02-output (2 stages)
+  * Medium: 01-input, 02-process, 03-output (3 stages)
+  * Complex: 01-collect, 02-validate, 03-enrich, 04-format, 05-export (5 stages)
 - **Tool Discovery (SEARCH for installable tools):**
-  * Search: "workout tracking MCP server GitHub"
-  * MCPs found: SomeFit API, WorkoutTracker CLI
-  * Document in 00-meta/tools.md with install notes
-- Inputs: User's fitness goals, days available, equipment
-- Outputs: Weekly workout schedule, exercise library
+  * Search: "[domain] MCP server GitHub" or "[domain] CLI tool"
+  * Document found tools in research findings
+- Inputs: [What data enters the workflow]
+- Outputs: [What artifacts are produced]
 
 **ARCHITECTURE (inline):**
-- Stage folders: 01-assess, 02-design, 03-schedule
+- Stage folders: Based on complexity (use 2-5 stages)
 - Create SYSTEM.md, CONTEXT.md, stage CONTEXT.md files
 - Include discovered tools in tool inventory
 
@@ -300,7 +299,7 @@ User: "I need a gym planning workspace"
 - Create folders and files
 
 **DELIVER:**
-- Create @gym-planner agent with tool references
+- Create @[workflow-name] agent
 
 That's it - no scripts to run!
 
