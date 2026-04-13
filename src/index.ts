@@ -2,7 +2,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { detectProjectRoot, installSkill, AgentTarget } from './install';
+import { detectProjectRoot, installSkill, AgentTarget, copyDirSync } from './install';
 import { scaffoldWorkspace } from './scripts/scaffold';
 import { createAgent, generateAgentName, AgentOptions } from './agent-creator';
 import { iterateAgent } from './agent-iterator';
@@ -21,21 +21,7 @@ function copySubSkillsToWorkspace(templatesDir: string, workspaceDir: string): v
     return;
   }
   
-  function copyDir(src: string, dest: string): void {
-    fs.mkdirSync(dest, { recursive: true });
-    const entries = fs.readdirSync(src, { withFileTypes: true });
-    for (const entry of entries) {
-      const srcPath = path.join(src, entry.name);
-      const destPath = path.join(dest, entry.name);
-      if (entry.isDirectory()) {
-        copyDir(srcPath, destPath);
-      } else {
-        fs.copyFileSync(srcPath, destPath);
-      }
-    }
-  }
-  
-  copyDir(skillsSrc, skillsDest);
+  copyDirSync(skillsSrc, skillsDest);
   console.log(`Copied sub-skills to: ${skillsDest}`);
 }
 
@@ -95,10 +81,11 @@ async function createWorkspace(args: string[], templatesDir: string): Promise<vo
   const workspaceName = extractOption(args, '--workspace-name') ?? 'My Workspace';
   const stagesStr = extractOption(args, '--stages') ?? '';
   if (!stagesStr) {
-    // When no stages provided, CLI defaults to placeholder (skill will determine during invoke)
-    console.log('Stages will be determined based on workflow analysis.');
+    console.log('No stages specified — using default stages. Use --stages to customize.');
   }
-  const stages = stagesStr ? stagesStr.split(',').map(s => s.trim()).filter(Boolean) : [];
+  const stages = stagesStr
+    ? stagesStr.split(',').map(s => s.trim()).filter(Boolean)
+    : ['01-input', '02-process', '03-output'];
   
   const withAgent = !hasFlag(args, '--no-agent');
   const agentNameOption = extractOption(args, '--agent-name');
@@ -139,6 +126,7 @@ async function createWorkspace(args: string[], templatesDir: string): Promise<vo
       name: agentName,
       purpose: `Execute ${workspaceName} workflow`,
       workspacePath: outputDir,
+      stages: stages,
     };
     
     createAgent(agentOptions);
@@ -168,7 +156,8 @@ async function createWorkspace(args: string[], templatesDir: string): Promise<vo
     console.log(`Agent: ${agentName}`);
     console.log(`Score: ${iterationResult.score}/${threshold}`);
     console.log(`Iterations: ${iterationResult.iterations}`);
-    console.log(`\nTo invoke the agent, use: @${agentName.slice(1)}`);
+    const displayName = agentName.startsWith('@') ? agentName.slice(1) : agentName;
+    console.log(`\nTo invoke the agent, use: @${displayName}`);
   } else {
     console.log('\n=== Workspace Creation Complete ===');
     console.log(`Workspace: ${outputDir}`);

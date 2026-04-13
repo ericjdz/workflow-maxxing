@@ -105,11 +105,9 @@ describe('orchestrator', () => {
         ], null, 2),
       );
 
-      const generateSpy = jest.spyOn(generateTests, 'generateTestCases').mockReturnValue({
-        testCases: [
-          { stage: 'fallback', type: 'sample', input: 'x', expected: 'x' },
-        ],
-      });
+      const generateSpy = jest.spyOn(generateTests, 'generateTestCases').mockReturnValue([
+        { id: 'fallback', stage: 'fallback', type: 'sample', input: 'x', expected: 'x' },
+      ]);
 
       const dispatchSpy = jest.spyOn(dispatch, 'dispatchParallel').mockImplementation((invocations) => {
         return invocations.map((inv) => ({
@@ -255,14 +253,12 @@ describe('orchestrator', () => {
 
     it('runs full lifecycle and writes summary for passing batches', () => {
       jest.spyOn(generateTests, 'generateTestCases').mockImplementation((workspacePath, outputPath) => {
-        const payload = {
-          testCases: [
-            { stage: '01-input', type: 'sample' as const, input: 'a', expected: 'a' },
-            { stage: '02-output', type: 'sample' as const, input: 'b', expected: 'b' },
-            { stage: '03-review', type: 'sample' as const, input: 'c', expected: 'c' },
-            { stage: '04-wrap', type: 'sample' as const, input: 'd', expected: 'd' },
-          ],
-        };
+        const payload = [
+          { id: 'tc-001', stage: '01-input', type: 'sample' as const, input: 'a', expected: 'a' },
+          { id: 'tc-002', stage: '02-output', type: 'sample' as const, input: 'b', expected: 'b' },
+          { id: 'tc-003', stage: '03-review', type: 'sample' as const, input: 'c', expected: 'c' },
+          { id: 'tc-004', stage: '04-wrap', type: 'sample' as const, input: 'd', expected: 'd' },
+        ];
 
         if (outputPath) {
           fs.writeFileSync(outputPath, JSON.stringify(payload, null, 2));
@@ -337,8 +333,8 @@ describe('orchestrator', () => {
       const testCasesPath = path.join(tempDir, '.agents', 'iteration', 'test-cases.json');
       expect(fs.existsSync(testCasesPath)).toBe(true);
       const savedTestCases = JSON.parse(fs.readFileSync(testCasesPath, 'utf-8'));
-      expect(Array.isArray(savedTestCases.testCases)).toBe(true);
-      expect(savedTestCases.testCases).toHaveLength(4);
+      expect(Array.isArray(savedTestCases)).toBe(true);
+      expect(savedTestCases).toHaveLength(4);
 
       const savedSummary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
       expect(savedSummary.totalBatches).toBe(2);
@@ -346,11 +342,9 @@ describe('orchestrator', () => {
     });
 
     it('forwards sub-agent runner options to dispatch calls', () => {
-      jest.spyOn(generateTests, 'generateTestCases').mockReturnValue({
-        testCases: [
-          { stage: '01-input', type: 'sample', input: 'a', expected: 'a' },
-        ],
-      });
+      jest.spyOn(generateTests, 'generateTestCases').mockReturnValue([
+        { id: 'tc-001', stage: '01-input', type: 'sample', input: 'a', expected: 'a' },
+      ]);
 
       const dispatchSpy = jest.spyOn(dispatch, 'dispatchParallel').mockImplementation((invocations) => {
         return invocations.map((inv) => ({
@@ -394,11 +388,9 @@ describe('orchestrator', () => {
     });
 
     it('uses worker timeout to treat long worker dispatch as failed and trigger fixer retry', () => {
-      jest.spyOn(generateTests, 'generateTestCases').mockReturnValue({
-        testCases: [
-          { stage: '01-input', type: 'sample', input: 'slow', expected: 'slow' },
-        ],
-      });
+      jest.spyOn(generateTests, 'generateTestCases').mockReturnValue([
+        { id: 'tc-001', stage: '01-input', type: 'sample', input: 'slow', expected: 'slow' },
+      ]);
 
       const dispatchSpy = jest.spyOn(dispatch, 'dispatchParallel').mockImplementation((invocations) => {
         return invocations.map((inv) => ({
@@ -467,11 +459,9 @@ describe('orchestrator', () => {
     });
 
     it('marks batch as failed when fixes clear worker failures but score remains below threshold', () => {
-      jest.spyOn(generateTests, 'generateTestCases').mockReturnValue({
-        testCases: [
-          { stage: '01-input', type: 'sample', input: 'needs-work', expected: 'better' },
-        ],
-      });
+      jest.spyOn(generateTests, 'generateTestCases').mockReturnValue([
+        { id: 'tc-001', stage: '01-input', type: 'sample', input: 'needs-work', expected: 'better' },
+      ]);
 
       const dispatchSpy = jest.spyOn(dispatch, 'dispatchParallel').mockImplementation((invocations) => {
         if (invocations[0]?.skill === 'worker') {
@@ -554,11 +544,9 @@ describe('orchestrator', () => {
     });
 
     it('recovers from below-threshold batch after a successful fix attempt', () => {
-      jest.spyOn(generateTests, 'generateTestCases').mockReturnValue({
-        testCases: [
-          { stage: '01-input', type: 'sample', input: 'recover', expected: 'stable' },
-        ],
-      });
+      jest.spyOn(generateTests, 'generateTestCases').mockReturnValue([
+        { id: 'tc-001', stage: '01-input', type: 'sample', input: 'recover', expected: 'stable' },
+      ]);
 
       const dispatchSpy = jest.spyOn(dispatch, 'dispatchParallel').mockImplementation((invocations) => {
         if (invocations[0]?.skill === 'worker') {
@@ -640,11 +628,9 @@ describe('orchestrator', () => {
     });
 
     it('runs fix loop and escalates when retries are exhausted below score threshold', () => {
-      jest.spyOn(generateTests, 'generateTestCases').mockReturnValue({
-        testCases: [
-          { stage: '01-input', type: 'sample', input: 'needs-fix', expected: 'fixed' },
-        ],
-      });
+      jest.spyOn(generateTests, 'generateTestCases').mockReturnValue([
+        { id: 'tc-001', stage: '01-input', type: 'sample', input: 'needs-fix', expected: 'fixed' },
+      ]);
 
       const dispatchSpy = jest.spyOn(dispatch, 'dispatchParallel').mockImplementation((invocations) => {
         if (invocations[0]?.skill === 'worker') {

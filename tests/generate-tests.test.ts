@@ -34,7 +34,7 @@ describe('generate-tests', () => {
       const ws = createWorkspaceWithStages(['01-input', '02-process', '03-output']);
       const result = generateTestCases(ws);
 
-      const stages = [...new Set(result.testCases.map((tc) => tc.stage))];
+      const stages = [...new Set(result.map((tc) => tc.stage))];
       expect(stages).toContain('01-input');
       expect(stages).toContain('02-process');
       expect(stages).toContain('03-output');
@@ -44,8 +44,8 @@ describe('generate-tests', () => {
       const ws = createWorkspaceWithStages(['01-input', '02-process']);
       const result = generateTestCases(ws);
 
-      const inputCases = result.testCases.filter((tc) => tc.stage === '01-input');
-      const processCases = result.testCases.filter((tc) => tc.stage === '02-process');
+      const inputCases = result.filter((tc) => tc.stage === '01-input');
+      const processCases = result.filter((tc) => tc.stage === '02-process');
 
       expect(inputCases.length).toBeGreaterThanOrEqual(2);
       expect(inputCases.length).toBeLessThanOrEqual(3);
@@ -57,7 +57,7 @@ describe('generate-tests', () => {
       const ws = createWorkspaceWithStages(['01-input']);
       const result = generateTestCases(ws);
 
-      const types = result.testCases.map((tc) => tc.type);
+      const types = result.map((tc) => tc.type);
       expect(types).toContain('sample');
       expect(types).toContain('edge-case');
       expect(types).toContain('empty');
@@ -71,14 +71,15 @@ describe('generate-tests', () => {
 
       const result = generateTestCases(ws);
 
-      expect(result.testCases).toHaveLength(0);
+      expect(result).toHaveLength(0);
     });
 
     it('each test case has required fields', () => {
       const ws = createWorkspaceWithStages(['01-input']);
       const result = generateTestCases(ws);
 
-      for (const tc of result.testCases) {
+      for (const tc of result) {
+        expect(tc).toHaveProperty('id');
         expect(tc).toHaveProperty('stage');
         expect(tc).toHaveProperty('type');
         expect(tc).toHaveProperty('input');
@@ -94,8 +95,7 @@ describe('generate-tests', () => {
 
       const content = fs.readFileSync(outputPath, 'utf-8');
       const parsed = JSON.parse(content);
-      expect(parsed).toHaveProperty('testCases');
-      expect(Array.isArray(parsed.testCases)).toBe(true);
+      expect(Array.isArray(parsed)).toBe(true);
     });
   });
 });

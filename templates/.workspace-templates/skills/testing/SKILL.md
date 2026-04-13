@@ -32,12 +32,34 @@ NO TESTING WITHOUT TEST CASES
 
 ## The Process
 
-1. **Generate test cases** - Run `node scripts/generate-tests.ts --workspace <path> --output ./tests.json`.
+1. **Generate test cases** - Instead of using scripts, author `.agents/iteration/test-cases.json` manually based on workspace criteria.
 2. **Read test cases** - Parse generated test cases and expected outcomes.
 3. **Run generation tests** - Produce sample content each stage should output.
 4. **Run evaluation tests** - Review CONTEXT.md files against expected behavior.
 5. **Aggregate results** - Identify recurring patterns and quality gaps.
 6. **Document findings** - Create a pass/fail report per test case.
+
+## Agent-Driven Test-Case Generation (Required)
+
+- **Agent ownership:** Test-cases MUST be discovered and authored by an agent using the workspace context. Do not rely on hardcoded script-generated test cases.
+- **Where to write:** The agent must write the test-case bundle to `.agents/iteration/test-cases.json` inside the workspace before the orchestrator or validator dispatches workers.
+- **Discovery guidance:** Agents should inspect repo files (SYSTEM.md, CONTEXT.md, stage CONTEXTs, user prompts, examples, and any domain files) to infer realistic inputs, edge cases, and acceptance criteria.
+- **Schema (minimal):** The file must be valid JSON and an array of objects with the following fields:
+
+```json
+[
+  {
+    "id": "tc-001",
+    "stage": "01-input",
+    "type": "sample",
+    "input": "...",
+    "expected": "..."
+  }
+]
+```
+
+- **Idempotence:** Agents may re-generate or refine the file across iterations, but each write must be complete and timestamped.
+- **Signal readiness:** After creating `.agents/iteration/test-cases.json`, write a single-line marker file `.agents/iteration/.test-cases-ready`.
 
 ## Red Flags
 

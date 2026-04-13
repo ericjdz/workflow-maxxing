@@ -4,3 +4,7 @@ coverage/
 *.tsbuildinfo
 .env
 session-*.md
+.agents/
+workspace/
+tests.json
+.sisyphus/

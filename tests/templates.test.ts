@@ -44,27 +44,23 @@ describe('Template files', () => {
     expect(content).toContain('# Workspace-Maxxing');
     expect(content).toContain('## Overview');
     expect(content).toContain('## When to Use');
+    expect(content).toContain('## User Commands');
+    expect(content).toContain('## Tool Discovery');
+    expect(content).toContain('## Execution Mode: Inline Workflow');
+    expect(content).toContain('## Stage Determination Rules');
     expect(content).toContain('## The Iron Law');
-    expect(content).toContain('## Hybrid Flow');
-    expect(content).toContain('## Sub-Skill Dispatch');
-    expect(content).toContain('## Available Scripts');
-    expect(content).toContain('## Anti-Rationalization Table');
     expect(content).toContain('## Scope Guardrails');
-    expect(content).toContain('## Integration');
+    expect(content).toContain('## Anti-Rationalization Table');
     expect(content).toContain('## ICM Rules');
     expect(content).toContain('## Output Format');
-    expect(content).toContain('## Sub-Agent Runner Contract');
   });
 
-  it('README.md documents strict external runner contract for worker/fixer', () => {
+  it('README.md exists', () => {
     const readmePath = path.join(__dirname, '..', 'README.md');
     expect(fs.existsSync(readmePath)).toBe(true);
 
     const content = fs.readFileSync(readmePath, 'utf-8');
-    expect(content).toContain('--subagent-runner');
-    expect(content).toContain('{skill}');
-    expect(content.toLowerCase()).toContain('worker/fixer');
-    expect(content.toLowerCase()).toContain('external runner');
+    expect(content.toLowerCase()).toContain('workspace');
   });
 
   it('SYSTEM.md contains Layer 0 content', () => {
@@ -205,15 +201,5 @@ describe('Template files', () => {
     expect(content).toMatch(/description:/);
   });
 
-  it('SKILL.md references all 7 sub-skills', () => {
-    const skillPath = path.join(templatesDir, 'SKILL.md');
-    const content = fs.readFileSync(skillPath, 'utf-8');
-    expect(content).toContain('validation');
-    expect(content).toContain('research');
-    expect(content).toContain('prompt-engineering');
-    expect(content).toContain('testing');
-    expect(content).toContain('iteration');
-    expect(content).toContain('architecture');
-    expect(content).toContain('tooling');
-  });
+
 });

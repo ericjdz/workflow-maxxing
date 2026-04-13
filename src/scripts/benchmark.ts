@@ -125,16 +125,16 @@ function calculateStageRawScore(ws: string, folder: string): number {
 
   if (fs.existsSync(stageContextPath)) {
     const content = fs.readFileSync(stageContextPath, 'utf-8');
-    if (content.toLowerCase().includes('purpose') || content.toLowerCase().includes('## purpose')) score += 4;
-    if (content.toLowerCase().includes('input')) score += 4;
-    if (content.toLowerCase().includes('output')) score += 4;
-    if (content.toLowerCase().includes('dependenc')) score += 3;
-    if (content.toLowerCase().includes('## success criteria') || content.toLowerCase().includes('success criteria')) score += 5;
-    if (content.toLowerCase().includes('## approach') || content.toLowerCase().includes('approach')) score += 5;
-    if (content.toLowerCase().includes('## risks') || content.toLowerCase().includes('risks')) score += 5;
-    if (content.toLowerCase().includes('## timeline') || content.toLowerCase().includes('timeline')) score += 5;
-    if (content.toLowerCase().includes('## resources') || content.toLowerCase().includes('resources')) score += 5;
-    if (content.toLowerCase().includes('## validation') || content.toLowerCase().includes('validation')) score += 5;
+    if (/^#+\s+Purpose/im.test(content)) score += 4;
+    if (/^#+\s+Input/im.test(content)) score += 4;
+    if (/^#+\s+Output/im.test(content)) score += 4;
+    if (/^#+\s+Dependenc/im.test(content)) score += 3;
+    if (/^#+\s+Success Criteria/im.test(content)) score += 5;
+    if (/^#+\s+Approach/im.test(content)) score += 5;
+    if (/^#+\s+Risks/im.test(content)) score += 5;
+    if (/^#+\s+Timeline/im.test(content)) score += 5;
+    if (/^#+\s+Resources/im.test(content)) score += 5;
+    if (/^#+\s+Validation/im.test(content)) score += 5;
   }
 
   return Math.min(score, MAX_RAW_SCORE);

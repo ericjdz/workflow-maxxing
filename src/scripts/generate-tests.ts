@@ -2,15 +2,14 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 export interface TestCase {
+  id: string;
   stage: string;
   type: 'sample' | 'edge-case' | 'empty';
   input: string;
   expected: string;
 }
 
-export interface TestCasesOutput {
-  testCases: TestCase[];
-}
+export type TestCasesOutput = TestCase[];
 
 export function generateTestCases(
   workspacePath: string,
@@ -37,6 +36,7 @@ export function generateTestCases(
     }
 
     testCases.push({
+      id: `${stage}-sample`,
       stage,
       type: 'sample',
       input: generateSampleInput(stage, purpose),
@@ -44,6 +44,7 @@ export function generateTestCases(
     });
 
     testCases.push({
+      id: `${stage}-edge-case`,
       stage,
       type: 'edge-case',
       input: generateEdgeCaseInput(stage),
@@ -51,6 +52,7 @@ export function generateTestCases(
     });
 
     testCases.push({
+      id: `${stage}-empty`,
       stage,
       type: 'empty',
       input: '',
@@ -58,14 +60,12 @@ export function generateTestCases(
     });
   }
 
-  const result: TestCasesOutput = { testCases };
-
   if (outputPath) {
-    fs.writeFileSync(outputPath, JSON.stringify(result, null, 2));
+    fs.writeFileSync(outputPath, JSON.stringify(testCases, null, 2));
     console.log(`Test cases written to: ${outputPath}`);
   }
 
-  return result;
+  return testCases;
 }
 
 function generateSampleInput(stage: string, purpose: string): string {

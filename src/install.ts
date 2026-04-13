@@ -46,7 +46,7 @@ export function detectProjectRoot(startDir: string): string {
 /**
  * Recursively copy a directory, overwriting existing files.
  */
-function copyDirSync(src: string, dest: string): void {
+export function copyDirSync(src: string, dest: string): void {
   if (!fs.existsSync(src)) {
     throw new Error(`Source directory not found: ${src}`);
   }
