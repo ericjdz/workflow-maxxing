@@ -187,6 +187,25 @@ Read files from: <workspace-path>
 
 ---
 
+## Session Restart Reminder (MANDATORY - Add to Final Output)
+
+After delivering the workspace and agent, append this message to your final output:
+
+```markdown
+---
+
+## ⚠️ Restart Your AI Session
+
+To use the new `@<agent-name>` skill:
+
+1. **Restart your AI session** (close and reopen the chat)
+2. **Re-invoke the skill** by typing `@<agent-name>` or your workflow request
+
+The new skill won't be available until you restart. This is how AI agent environments load skills into context.
+```
+
+---
+
 ## Stage Determination Rules
 
 - **NEVER** use "01-input, 02-process, 03-output" as default stages

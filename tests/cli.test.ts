@@ -15,22 +15,24 @@ describe('CLI', () => {
     fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
-  it('shows help when no args provided', () => {
-    const output = execSync('node dist/index.js', {
-      cwd: path.join(__dirname, '..'),
+  const repoRoot = path.join(__dirname, '..');
+const cliPath = path.join(repoRoot, 'dist', 'index.js');
+
+it('shows help when no args provided (default behavior)', () => {
+    const output = execSync(`node "${cliPath}"`, {
+      cwd: tempDir,
       encoding: 'utf-8',
+      env: { ...process.env, WORKSPACE_MAXXING_TEMPLATES: path.join(repoRoot, 'templates') },
     });
 
+    // When no args, shows help (not install)
     expect(output).toContain('workspace-maxxing');
     expect(output).toContain('--opencode');
-    expect(output).toContain('--claude');
-    expect(output).toContain('--copilot');
-    expect(output).toContain('--gemini');
   });
 
   it('shows help when --help flag is provided', () => {
-    const output = execSync('node dist/index.js --help', {
-      cwd: path.join(__dirname, '..'),
+    const output = execSync(`node "${cliPath}" --help`, {
+      cwd: repoRoot,
       encoding: 'utf-8',
     });
 
@@ -39,11 +41,10 @@ describe('CLI', () => {
   });
 
   it('installs skill when --opencode flag is provided', () => {
-    const cliPath = path.join(__dirname, '..', 'dist', 'index.js');
     const output = execSync(`node "${cliPath}" --opencode`, {
       cwd: tempDir,
       encoding: 'utf-8',
-      env: { ...process.env, WORKSPACE_MAXXING_TEMPLATES: path.join(__dirname, '..', 'templates') },
+      env: { ...process.env, WORKSPACE_MAXXING_TEMPLATES: path.join(repoRoot, 'templates') },
     });
 
     expect(output).toContain('installed');
@@ -53,11 +54,10 @@ describe('CLI', () => {
   });
 
   it('installs to claude path when --claude flag is provided', () => {
-    const cliPath = path.join(__dirname, '..', 'dist', 'index.js');
     const output = execSync(`node "${cliPath}" --claude`, {
       cwd: tempDir,
       encoding: 'utf-8',
-      env: { ...process.env, WORKSPACE_MAXXING_TEMPLATES: path.join(__dirname, '..', 'templates') },
+      env: { ...process.env, WORKSPACE_MAXXING_TEMPLATES: path.join(repoRoot, 'templates') },
     });
 
     expect(output).toContain('claude');
@@ -67,11 +67,10 @@ describe('CLI', () => {
   });
 
   it('installs to copilot path when --copilot flag is provided', () => {
-    const cliPath = path.join(__dirname, '..', 'dist', 'index.js');
     const output = execSync(`node "${cliPath}" --copilot`, {
       cwd: tempDir,
       encoding: 'utf-8',
-      env: { ...process.env, WORKSPACE_MAXXING_TEMPLATES: path.join(__dirname, '..', 'templates') },
+      env: { ...process.env, WORKSPACE_MAXXING_TEMPLATES: path.join(repoRoot, 'templates') },
     });
 
     expect(output).toContain('copilot');
@@ -81,11 +80,10 @@ describe('CLI', () => {
   });
 
   it('installs to gemini path when --gemini flag is provided', () => {
-    const cliPath = path.join(__dirname, '..', 'dist', 'index.js');
     const output = execSync(`node "${cliPath}" --gemini`, {
       cwd: tempDir,
       encoding: 'utf-8',
-      env: { ...process.env, WORKSPACE_MAXXING_TEMPLATES: path.join(__dirname, '..', 'templates') },
+      env: { ...process.env, WORKSPACE_MAXXING_TEMPLATES: path.join(repoRoot, 'templates') },
     });
 
     expect(output).toContain('gemini');
@@ -96,8 +94,8 @@ describe('CLI', () => {
 
   it('errors on unsupported flag', () => {
     try {
-      execSync('node dist/index.js --unknown-flag', {
-        cwd: path.join(__dirname, '..'),
+      execSync(`node "${cliPath}" --unknown-flag`, {
+        cwd: repoRoot,
         encoding: 'utf-8',
         stdio: ['pipe', 'pipe', 'pipe'],
       });

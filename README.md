@@ -85,15 +85,13 @@ workspace/
 
 ## Quick Start
 
-### 1) Install the skill into your current project
-
-OpenCode default:
+### 1) Install the skill
 
 ```bash
-npx workspace-maxxing install
+npx workspace-maxxing init
 ```
 
-Other targets:
+For other platforms:
 
 ```bash
 npx workspace-maxxing --claude
