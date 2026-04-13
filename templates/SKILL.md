@@ -180,23 +180,52 @@ Check that the structure follows ICM rules.
 
 **EVERY workspace must have an invokable agent!** 
 
-Create the agent directory and files:
+Create `.agents/skills/<agent-name>/` with these exact files:
 
+#### 1. SKILL.md (exactly like this):
+```markdown
+---
+name: @gym-planner
+description: "Execute gym planning workflow. Use when user wants workout guidance."
+triggers: ["@gym-planner", "gym planning", "workout help"]
+---
+
+# @gym-planner Agent
+
+## Purpose
+Gym planning and workout scheduling workflow
+
+## When to Use
+- User wants workout planning
+- User needs weekly schedule
+- User asks for exercise guidance
+
+## Workflow Stages
+- 01-assess → Gather user profile (goals, equipment, experience)
+- 02-design → Create workout program  
+- 03-schedule → Generate weekly schedule
 ```
-.agents/skills/@<agent-name>/
-├── SKILL.yaml       ← Agent definition with name, description
-├── config.json     ← Agent metadata
-└── prompts/
-    ├── system.md   ← System prompt
-    └── tasks/
-        └── default.md
+
+#### 2. config.json:
+```json
+{
+  "name": "@gym-planner",
+  "purpose": "Gym planning and workout scheduling",
+  "platforms": ["opencode", "claude", "copilot", "gemini"]
+}
 ```
 
-Example for gym planning workspace:
-- Agent name: `@gym-planner`
-- Directory: `.agents/skills/gym-planner/`
+#### 3. prompts/system.md:
+```markdown
+# @gym-planner System Prompt
 
-The agent must be created before delivering the workspace!
+You are a gym planning assistant. Guide users through:
+1. 01-assess - Collect profile (goals, days/week, equipment, experience)
+2. 02-design - Match exercises to goals
+3. 03-schedule - Generate weekly workout schedule
+```
+
+**Critical**: Create `.agents/skills/<name>/` with these files BEFORE delivering!
 
 ---
 
