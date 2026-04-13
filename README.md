@@ -12,150 +12,196 @@
   </a>
 </p>
 
-> Describe what you need. AI builds your workflow.
+Build structured, interpretable AI workflow workspaces and invokable agents from one command.
 
----
+workspace-maxxing is an npx-installable CLI + skill package that helps you:
+
+- Scaffold ICM-style workspace folders
+- Install the `workspace-maxxing` skill into your agent environment
+- Generate an invokable agent for your workflow
+- Validate and iterate toward robust outputs
+
+## What Is workspace-maxxing?
+
+workspace-maxxing turns vague requests like "build me a lead gen workflow" into a concrete, file-structured workspace with stage boundaries and context contracts.
+
+Instead of throwing everything into one giant prompt, it creates a staged workflow with:
+
+- `SYSTEM.md` for global rules
+- Root `CONTEXT.md` for routing
+- Numbered stage folders for execution order
+- `00-meta/` for execution log and tool inventory
+- Generated agent prompts and configuration
+
+## Why Use It?
+
+Use workspace-maxxing when you want workflows that are easier to debug, review, and repeat.
+
+1. Better control over agent behavior: numbered stages and explicit context files reduce prompt drift.
+2. Easier review and handoff: outputs live in plain files, so humans can inspect and edit between stages.
+3. Repeatable execution: the same structure can run new input with less re-prompting.
+4. Cross-platform agent install: supports OpenCode, Claude Code, GitHub Copilot, and Gemini CLI targets.
+5. Built-in quality loop: includes validation, test generation, benchmark scoring, and fix retries.
+
+## Methodology Basis (ICM)
+
+This project is based in part on Interpratable Context Methodology (ICM), also referred to as Interpretable Context Methodology, including folder-structure conventions such as numbered stage folders, stage contracts, selective context loading, and file-based handoffs.
+
+Attribution:
+
+- Jake Van Clief's ICM framework and conventions (RinDig repository)
+- The broader ICM five-layer folder architecture described in public ICM template work
+
+Relevant reference:
+
+- https://arxiv.org/html/2603.16021v2
+
+workspace-maxxing adapts those ideas to this CLI-driven layout:
+
+```text
+workspace/
+  SYSTEM.md
+  CONTEXT.md
+  00-meta/
+    tools.md
+    execution-log.md
+  01-input/
+    CONTEXT.md
+  02-process/
+    CONTEXT.md
+  03-output/
+    CONTEXT.md
+```
 
 ## Quick Start
 
-### Step 1: Install
+### 1) Install the skill into your current project
+
+OpenCode default:
 
 ```bash
 npx workspace-maxxing install
 ```
 
-### Step 2: Tell AI What You Want
+Other targets:
 
+```bash
+npx workspace-maxxing --claude
+npx workspace-maxxing --copilot
+npx workspace-maxxing --gemini
 ```
+
+Then invoke in your AI session:
+
+```text
 @workspace-maxxing
-
-"I need a lead generation workflow"
+Create a daily digest workflow for AI news.
 ```
 
-That's it. AI creates everything.
+### 2) Create a full workspace plus agent directly
 
----
-
-## What to Say
-
-Just describe what you need in plain language:
-
-| Say This | AI Builds |
-|---------|----------|
-| `"I need a lead generation workflow"` | Lead gen workspace + `@lead-gen` agent |
-| `"Create a content pipeline"` | Content workflow + `@content-creator` |
-| `"Build a code review process"` | Code review workspace + `@code-reviewer` |
-| `"Make a meeting notes analyzer"` | Notes workflow + `@meeting-notes` |
-| `"I want a customer support bot"` | Support workflow + `@support-bot` |
-| `"Create a daily standup workflow"` | Standup workflow + `@daily-standup` |
-
-AI figures out stages, names, and structure automatically.
-
----
-
-## Using Your Agent
-
-Once created, just talk to your agent:
-
-```
-@lead-gen
-"Find me CTOs at AI startups in San Francisco"
+```bash
+npx workspace-maxxing init --workspace-name "Daily Digest"
 ```
 
-```
-@content-creator
-"Write about AI agents in 2026"
-```
+Common options:
 
----
+- `--workspace-name <name>`
+- `--stages <comma-separated-stages>`
+- `--output <path>`
+- `--agent-name <name>`
+- `--no-agent`
+- `--threshold <score>` (default: 85)
+- `--max-iterations <n>` (default: 3)
 
-## How It Works
+Example:
 
-```
-You → @workspace-maxxing → "I need a [your idea] workflow"
-      ↓
-AI analyzes what you need (uses /skill research)
-      ↓
-AI determines tools needed (uses /skill tooling)
-      ↓
-AI designs folder structure (uses /skill architecture)
-      ↓
-AI creates folders & files (BUILD phase)
-      ↓
-AI builds your invokable agent
-      ↓
-AI tests and improves until robust (uses /skill iteration)
-      ↓
-@your-agent is ready
+```bash
+npx workspace-maxxing init \
+  --workspace-name "Lead Pipeline" \
+  --stages "01-intake,02-enrich,03-output" \
+  --output "./lead-workspace"
 ```
 
----
+## Use Cases
 
-## Sub-Skills (Used During Build)
+After install, talk to `@workspace-maxxing` in plain language:
 
-workspace-maxxing uses these specialized skills internally:
+- "Build a workspace for weekly product analytics reports"
+- "Create an agent for PR review triage"
+- "Validate this workspace"
+- "Improve this workspace until robust"
+- "Create a content pipeline for newsletters"
+- "Set up a customer-support triage workflow"
 
-| Skill | What It Does |
-|-------|-----------|
-| `research` | Analyzes requirements |
-| `tooling` | Determines required tools |
-| `architecture` | Designs folder structure |
-| `validation` | Checks ICM compliance |
-| `iteration` | Tests and improves until robust |
+The skill internally routes through specialized sub-skills such as:
 
----
+- `research`
+- `architecture`
+- `tooling`
+- `validation`
+- `worker`
+- `fixer`
+- `iteration`
 
-## The Iron Law
+## Onboarding
 
+Use this first-run flow when setting up workspace-maxxing in a new repo:
+
+1. Install the skill for your environment (`install`, `--claude`, `--copilot`, or `--gemini`).
+2. Start your AI session and invoke `@workspace-maxxing`.
+3. Describe the workflow goal in one sentence.
+4. Review generated files (`SYSTEM.md`, `CONTEXT.md`, stage folders, and `00-meta/`).
+5. Run validation or iteration to improve robustness before regular use.
+
+## CLI Commands
+
+```bash
+# Help
+npx workspace-maxxing --help
+
+# Install skill (OpenCode target)
+npx workspace-maxxing install
+
+# Install skill for specific target
+npx workspace-maxxing --opencode
+npx workspace-maxxing --claude
+npx workspace-maxxing --copilot
+npx workspace-maxxing --gemini
+
+# Create workspace (+ agent by default)
+npx workspace-maxxing init
 ```
-NO BUILD WITHOUT PLAN
-NO PLAN WITHOUT RESEARCH
-NO TOOL DISCOVERY BEFORE AGENT DELIVERY
-NO IMPROVEMENT WITHOUT VALIDATION
+
+## Local Development
+
+From this repository:
+
+```bash
+npm install
+npm run build
+npm test
 ```
 
----
+Run built CLI directly:
 
-## Platform Support
+```bash
+node dist/index.js init --workspace-name "Test Workspace"
+```
 
-| Platform | Installation | Invoking |
-|----------|--------------|----------|
-| OpenCode | `npx workspace-maxxing install` | `@workspace-maxxing` |
-| Claude Code | `npx workspace-maxxing --claude` | `@workspace-maxxing` |
-| GitHub Copilot | `npx workspace-maxxing --copilot` | `@workspace-maxxing` |
-| Gemini CLI | `npx workspace-maxxing --gemini` | `@workspace-maxxing` |
+If you want to test as a local package before publish:
 
----
-
-## What's Inside
-
-| File/Folder | Purpose |
-|-------------|---------|
-| `SKILL.md` | Main skill definition |
-| `.agents/skills/` | Sub-skills (research, architecture, tooling, etc.) |
-| `scripts/` | Executable scripts (scaffold, validate, dispatch) |
-| `.workspace-templates/` | ICM workspace templates |
-
----
+```bash
+npm pack
+npx --yes --package ./workspace-maxxing-<version>.tgz workspace-maxxing install
+```
 
 ## Requirements
 
 - Node.js 18+
-- npm or yarn
-- An AI agent: OpenCode, Claude Code, GitHub Copilot, or Gemini CLI
-
----
-
-## Contributing
-
-Contributions welcome! Please read the [contributing guide](CONTRIBUTING.md) first.
-
----
+- npm
+- An AI agent environment (OpenCode, Claude Code, GitHub Copilot, or Gemini CLI)
 
 ## License
 
 MIT © [Eric Julian Deguzman](https://github.com/ericjdz)
-
----
-
-<p align="center">Made with 🚀</p>
