@@ -49,7 +49,7 @@ Just describe what you need in plain language:
 | `"I want a customer support bot"` | Support workflow + `@support-bot` |
 | `"Create a daily standup workflow"` | Standup workflow + `@daily-standup` |
 
-AI figures out stages, names, and structure.
+AI figures out stages, names, and structure automatically.
 
 ---
 
@@ -74,26 +74,88 @@ Once created, just talk to your agent:
 ```
 You → @workspace-maxxing → "I need a [your idea] workflow"
       ↓
-AI analyzes what you need
+AI analyzes what you need (uses /skill research)
       ↓
-AI creates folder structure
+AI determines tools needed (uses /skill tooling)
+      ↓
+AI designs folder structure (uses /skill architecture)
+      ↓
+AI creates folders & files (BUILD phase)
       ↓
 AI builds your invokable agent
       ↓
-AI tests and improves until robust
+AI tests and improves until robust (uses /skill iteration)
       ↓
 @your-agent is ready
 ```
 
 ---
 
+## Sub-Skills (Used During Build)
+
+workspace-maxxing uses these specialized skills internally:
+
+| Skill | What It Does |
+|-------|-----------|
+| `research` | Analyzes requirements |
+| `tooling` | Determines required tools |
+| `architecture` | Designs folder structure |
+| `validation` | Checks ICM compliance |
+| `iteration` | Tests and improves until robust |
+
+---
+
+## The Iron Law
+
+```
+NO BUILD WITHOUT PLAN
+NO PLAN WITHOUT RESEARCH
+NO TOOL DISCOVERY BEFORE AGENT DELIVERY
+NO IMPROVEMENT WITHOUT VALIDATION
+```
+
+---
+
+## Platform Support
+
+| Platform | Installation | Invoking |
+|----------|--------------|----------|
+| OpenCode | `npx workspace-maxxing install` | `@workspace-maxxing` |
+| Claude Code | `npx workspace-maxxing --claude` | `@workspace-maxxing` |
+| GitHub Copilot | `npx workspace-maxxing --copilot` | `@workspace-maxxing` |
+| Gemini CLI | `npx workspace-maxxing --gemini` | `@workspace-maxxing` |
+
+---
+
+## What's Inside
+
+| File/Folder | Purpose |
+|-------------|---------|
+| `SKILL.md` | Main skill definition |
+| `.agents/skills/` | Sub-skills (research, architecture, tooling, etc.) |
+| `scripts/` | Executable scripts (scaffold, validate, dispatch) |
+| `.workspace-templates/` | ICM workspace templates |
+
+---
+
 ## Requirements
 
 - Node.js 18+
+- npm or yarn
 - An AI agent: OpenCode, Claude Code, GitHub Copilot, or Gemini CLI
+
+---
+
+## Contributing
+
+Contributions welcome! Please read the [contributing guide](CONTRIBUTING.md) first.
 
 ---
 
 ## License
 
 MIT © [Eric Julian Deguzman](https://github.com/ericjdz)
+
+---
+
+<p align="center">Made with 🚀</p>
