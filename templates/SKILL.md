@@ -138,16 +138,18 @@ This agent's workspace is at: <workspace-path>
 - 02-<stage> → <description>
 - 03-<stage> → <description>
 
-## How It Works
+## How It Works (MANDATORY - Follow Exactly)
 1. Read `<workspace-path>/SYSTEM.md` first for global rules
 2. Read `<workspace-path>/CONTEXT.md` for routing
-3. Load the relevant stage CONTEXT.md
+3. Load `<workspace-path>/NN-stage/CONTEXT.md` - the specific stage context
 4. Execute the task following stage instructions
 5. Write output to the appropriate stage folder
-6. Update `00-meta/execution-log.md` to mark stage complete
+6. Update `<workspace-path>/00-meta/execution-log.md` to mark stage complete
+
+**CRITICAL PATH RULE**: Always prefix stage folder paths with `<workspace-path>/`. Never use relative paths like `01-identify/CONTEXT.md` or `00-meta/execution-log.md` alone.
 
 ## Available Tools
-<List tools from 00-meta/tools.md>
+<List tools from `<workspace-path>/00-meta/tools.md`>
 ```
 
 #### 2. config.json:
@@ -175,10 +177,10 @@ Read files from: <workspace-path>
 - If context is missing, ask for clarification
 - If input is empty, ask for valid input
 - If input is very large, process in chunks
-- If a stage dependency is unclear, check execution-log.md
+- If a stage dependency is unclear, check `<workspace-path>/00-meta/execution-log.md`
 
 ## Available Tools
-<List from 00-meta/tools.md>
+<List from `<workspace-path>/00-meta/tools.md`>
 ```
 
 **Critical**: Create `.agents/skills/<name>/` with these files BEFORE delivering!
@@ -212,7 +214,7 @@ NO STAGE SKIPPING ACROSS NUMBERED WORKFLOW FOLDERS
 ## Sequential Enforcement
 
 - Follow numbered stage folders in strict order; do not jump ahead.
-- Use 00-meta/execution-log.md as the source of truth for stage completion state.
+- Use `<workspace-path>/00-meta/execution-log.md` as the source of truth for stage completion state.
 - A later stage is blocked until the previous stage is checked complete with evidence notes.
 
 ## When Not to Use
@@ -225,9 +227,9 @@ NO STAGE SKIPPING ACROSS NUMBERED WORKFLOW FOLDERS
 
 Read these files for additional guidance when needed:
 
-- `references/iron-laws.md` — Absolute rules for workspace building
-- `references/anti-patterns.md` — Common rationalizations and reality checks
-- `references/reporting-format.md` — Structured JSON report format for sub-skill outputs
+- `<workspace-path>/references/iron-laws.md` — Absolute rules for workspace building
+- `<workspace-path>/references/anti-patterns.md` — Common rationalizations and reality checks
+- `<workspace-path>/references/reporting-format.md` — Structured JSON report format for sub-skill outputs
 
 ## Anti-Rationalization Table
 
