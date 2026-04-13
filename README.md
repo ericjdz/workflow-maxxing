@@ -12,131 +12,229 @@
   </a>
 </p>
 
-> An AI agent skill that builds ICM-compliant workspaces with invokable sub-agents. One command, complete workflow automation.
+> AI-powered workspace automation. Build structured workflows with one command.
 
-## Why workspace-maxxing?
+## What is workspace-maxxing?
 
-Most AI agent workspaces are disorganized—context is scattered, prompts are vague, and workflows lack structure. **workspace-maxxing** solves this by:
+**workspace-maxxing** is an AI agent skill that creates production-ready workflows in seconds. Instead of manually creating folders, writing prompts, and configuring agents—let AI do it for you.
 
-- **Creating structured workspaces** with ICM methodology (SYSTEM.md, CONTEXT.md, stage folders)
-- **Building autonomous agents** that you can invoke with `@agent-name`
-- **Self-improving agents** that validate and iterate until robust
-- **Automatic tool discovery** - checks available tools, installs missing ones
+### What it builds:
 
-## Quick Start
+```
+📁 lead-scraper/
+├── .agents/skills/@lead-scraper/   ← Invokable agent
+├── 01-input/                     ← Stage 1
+├── 02-process/                   ← Stage 2  
+├── 03-output/                    ← Stage 3
+├── 00-meta/                      ← Tools & logs
+├── SYSTEM.md                     ← Rules
+└── CONTEXT.md                   ← Routing
+```
+
+Then invoke with `@lead-scraper` and AI runs your workflow.
+
+---
+
+## Quick Start (30 seconds)
+
+### Step 1: Install
 
 ```bash
-# 1. Install the skill to your project
 npx workspace-maxxing install
+```
 
-# 2. In your AI agent, invoke the skill
+### Step 2: Invoke
+
+In your AI agent:
+
+```
 @workspace-maxxing
+```
 
-# 3. Ask it to create something
+### Step 3: Ask
+
+```
 "Create a workspace for lead scraping"
 ```
 
-The skill does everything else—creates folder structure, builds the agent, verifies tools, runs self-improvement.
+Done. AI creates your workspace with an invokable agent.
 
-## What You Get
+---
 
-When you ask for a "lead scraping" workspace:
+## Use Cases
+
+### 1. Lead Generation Workflow
 
 ```
-lead-scraper/
-├── .agents/skills/lead-scraper/   ← Invokable with @lead-scraper
-│   ├── SKILL.md
-│   ├── prompts/
-│   └── config.json
-├── 01-input/                     ← Stage 1: Input
-├── 02-process/                    ← Stage 2: Processing  
-├── 03-output/                    ← Stage 3: Output
-├── 00-meta/                      ← Metadata & tools
-├── SYSTEM.md                     ← Global rules
-└── CONTEXT.md                    ← Routing
+You: "Create a lead generation workspace with stages for scraping, enrichment, and export"
+
+AI creates:
+📁 lead-gen/
+├── 01-input/     → Prospect lists, target criteria
+├── 02-enrich/    → Company research, contact finding
+├── 03-export/    → CSV export, deduplication
+└── @lead-gen    → Your reusable agent
 ```
 
-Now use `@lead-scraper` to run that workflow anytime.
+**Invoking the agent:**
+```
+@lead-gen
+"Find me CTOs at AI startups in San Francisco"
+```
 
-## Features
+---
 
-### 🎯 Agent Creation
-- Create invokable agents for any workflow
-- Agents self-improve until score ≥ 85
-- Built-in test case generation & validation
+### 2. Content Creation Pipeline
 
-### 🔧 Automatic Tool Discovery
-- Checks what native tools your AI agent has
-- Verifies tool accessibility with test runs
-- Installs missing MCPs or CLI tools automatically
+```
+You: "Create a content workflow with research, writing, and editing stages"
 
-### 📁 ICM Workspace Structure
-- SYSTEM.md (global rules)
-- CONTEXT.md (routing)
-- Numbered stage folders (01-input, 02-process, 03-output)
-- 00-meta for tools & execution logs
+AI creates:
+📁 content-pipeline/
+├── 01-research/  → Topic analysis, competitor review
+├── 02-writing/   → Draft creation
+├── 03-editing/   → Proofreading, SEO optimization
+└── @content-creator
+```
 
-### 🔄 Multi-Platform Support
+**Use it:**
+```
+@content-creator
+"Write about AI agents in 2026"
+```
 
-| Platform | Installation |
-|----------|--------------|
-| OpenCode | `npx workspace-maxxing install` |
-| Claude Code | `npx workspace-maxxing --claude` |
-| GitHub Copilot | `npx workspace-maxxing --copilot` |
-| Gemini CLI | `npx workspace-maxxing --gemini` |
+---
 
-## Commands
+### 3. Code Review Process
 
-### CLI Commands
+```
+You: "Create a code review workspace"
+
+AI creates:
+📁 code-review/
+├── 01-submit/    → PR links, context
+├── 02-review/   → Security, performance, style checks
+├── 03-feedback/ → Summarized comments
+└── @code-reviewer
+```
+
+---
+
+### 4. Meeting Notes Analyzer
+
+```
+You: "Create a workspace for analyzing meeting notes"
+
+AI creates:
+📁 meeting-notes/
+├── 01-import/    → Upload transcripts
+├── 02-extract/   → Action items, decisions
+├── 03-organize/  → Tag and categorize
+└── @meeting-notes
+```
+
+---
+
+### 5. Customer Support Triage
+
+```
+You: "Create a support ticket triage workflow"
+
+AI creates:
+📁 support-triage/
+├── 01-intake/    → Ticket categorization
+├── 02-route/     → Priority assignment
+├── 03-respond/   → Draft responses
+└── @support-bot
+```
+
+---
+
+## Sub-Skills
+
+When using workspace-maxxing, you have access to specialized sub-skills:
+
+### /skill research
+Analyze requirements before building
+```
+/skill research --workspace ./my-workspace
+```
+
+### /skill architecture
+Design the workspace structure
+```
+/skill architecture --workspace ./my-workspace
+```
+
+### /skill tooling
+Install required tools
+```
+/skill tooling --workspace ./my-workspace
+```
+
+### /skill validation
+Check ICM compliance
+```
+/skill validation --workspace ./my-workspace
+```
+
+### /skill iteration
+Improve until robust
+```
+/skill iteration --workspace ./my-workspace
+```
+
+---
+
+## Commands Reference
+
+### CLI
 
 ```bash
 # Install the skill
 npx workspace-maxxing install
 
-# Install for specific platform
-npx workspace-maxxing --opencode
+# Create workspace with custom stages
+npx workspace-maxxing init --workspace-name "My Workflow" --stages "01-input,02-process,03-output"
 
-# Legacy commands (still work)
-npx workspace-maxxing init
-npx workspace-maxxing --create-workspace --workspace-name "My Project"
+# Create workspace without agent (structure only)
+npx workspace-maxxing init --workspace-name "Research" --no-agent
+
+# Install for specific platform
+npx workspace-maxxing --claude      # For Claude Code
+npx workspace-maxxing --copilot     # For GitHub Copilot
+npx workspace-maxxing --gemini     # For Gemini CLI
 ```
 
 ### In Your AI Agent
 
-When you invoke `@workspace-maxxing`, you can ask:
-
-| Request | Action |
-|---------|--------|
-| `"Build a workspace for X"` | Creates ICM workspace |
+| Request | What Happens |
+|---------|-------------|
+| `"Build a workspace for X"` | Creates ICM workspace + agent |
 | `"Create an agent for Y"` | Creates invokable @agent |
 | `"Validate my workspace"` | Checks ICM compliance |
 | `"Improve my workspace"` | Runs autonomous iteration |
 | `"Add tools for Z"` | Installs required tools |
 
-## Architecture
+---
+
+## How It Works
 
 ```
-┌─────────────────────────────────────────────────────┐
-│ @workspace-maxxing (invoked by user)                │
-├─────────────────────────────────────────────────────┤
-│ 1. RESEARCH     → Analyze the request            │
-│ 2. TOOLING      → Discover & install tools       │
-│ 3. ARCHITECTURE → Design workspace structure      │
-│ 4. BUILD        → Create ICM folders & files      │
-│ 5. AGENT        → Build invokable @agent          │
-│ 6. ITERATE      → Self-improve until robust       │
-│ 7. DELIVER      → Complete workspace + agent      │
-└─────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────┐
+│ @workspace-maxxing                         │
+├─────────────────────────────────────────────┤
+│ 1. RESEARCH    → What do you need?        │
+│ 2. TOOLING     → What tools required?      │
+│ 3. ARCHITECTURE→ How should it look?       │
+│ 4. BUILD       → Create folders & files   │
+│ 5. AGENT       → Build invokable agent    │
+│ 6. ITERATE    → Test and improve         │
+│ 7. DELIVER    → Done + agent ready       │
+└─────────────────────────────────────────────┘
 ```
 
-## What's Inside
-
-| File/Folder | Purpose |
-|-------------|---------|
-| `SKILL.md` | Main skill definition |
-| `skills/` | Sub-skills (research, architecture, tooling, etc.) |
-| `scripts/` | Executable scripts (scaffold, validate, dispatch) |
-| `.workspace-templates/` | ICM workspace templates |
+---
 
 ## The Iron Law
 
@@ -147,15 +245,86 @@ NO TOOL DISCOVERY BEFORE AGENT DELIVERY
 NO IMPROVEMENT WITHOUT VALIDATION
 ```
 
+---
+
 ## Requirements
 
 - Node.js 18+
 - npm or yarn
-- An AI agent (OpenCode, Claude, Copilot, or Gemini)
+- An AI agent: OpenCode, Claude Code, GitHub Copilot, or Gemini CLI
+
+---
+
+## What's Inside
+
+| File/Folder | Purpose |
+|-------------|---------|
+| `SKILL.md` | Main skill definition |
+| `.agents/skills/` | Sub-skills for /skill commands |
+| `scripts/` | Executable scripts |
+| `.workspace-templates/` | Workspace templates |
+
+---
+
+## Examples
+
+### Example 1: Simple Workspace
+
+```bash
+npx workspace-maxxing init --workspace-name "Daily Standup" --stages "01-update,02-blocking,03-action-items"
+```
+
+Creates:
+```
+daily-standup/
+├── 01-update/       → Yesterday's progress
+├── 02-blocking/     → Current blockers
+├── 03-action-items/ → Today's priorities
+└── @daily-standup
+```
+
+---
+
+### Example 2: Custom Agent Name
+
+```bash
+npx workspace-maxxing init --workspace-name "Content Writer" --agent-name "@writer"
+```
+
+Creates `@writer` agent:
+```
+@writer
+"Write a blog post about AI trends"
+```
+
+---
+
+### Example 3: Multi-Stage Pipeline
+
+```bash
+npx workspace-maxxing init \
+  --workspace-name "Data Pipeline" \
+  --stages "01-ingest,02-transform,03-validate,04-export"
+```
+
+---
+
+## Platform Support
+
+| Platform | Installation | Invoking |
+|----------|-------------|---------|
+| **OpenCode** | `npx workspace-maxxing install` | `@workspace-maxxing` |
+| **Claude Code** | `npx workspace-maxxing --claude` | `@workspace-maxxing` |
+| **GitHub Copilot** | `npx workspace-maxxing --copilot` | `@workspace-maxxing` |
+| **Gemini CLI** | `npx workspace-maxxing --gemini` | `@workspace-maxxing` |
+
+---
 
 ## Contributing
 
 Contributions welcome! Please read the [contributing guide](CONTRIBUTING.md) first.
+
+---
 
 ## License
 
