@@ -176,9 +176,27 @@ Create the ICM workspace with the stages you determined.
 
 Check that the structure follows ICM rules.
 
-### PHASE 5: DELIVER
+### PHASE 5: DELIVER (MUST DO THIS!)
 
-Create the invokable agent and deliver.
+**EVERY workspace must have an invokable agent!** 
+
+Create the agent directory and files:
+
+```
+.agents/skills/@<agent-name>/
+├── SKILL.yaml       ← Agent definition with name, description
+├── config.json     ← Agent metadata
+└── prompts/
+    ├── system.md   ← System prompt
+    └── tasks/
+        └── default.md
+```
+
+Example for gym planning workspace:
+- Agent name: `@gym-planner`
+- Directory: `.agents/skills/gym-planner/`
+
+The agent must be created before delivering the workspace!
 
 ---
 
