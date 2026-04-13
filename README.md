@@ -12,6 +12,18 @@
   </a>
 </p>
 
+## About
+
+workspace-maxxing was born from a simple frustration: every AI workflow project started the same way—messy prompts, scattered context, and outputs that were impossible to reproduce.
+
+I built this tool to enforce structure without killing creativity. The ICM methodology provided the framework, but the CLI makes it actionable. Now a single command scaffolds a complete workflow workspace with numbered stages, context contracts, and an invokable agent ready for iteration.
+
+I'm [Eric Julian Deguzman](https://github.com/ericjdz)—a sysadmin turned developer who's spent years automating workflows. workspace-maxxing is my attempt to make AI agent workflows as reproducible and debuggable as proper software engineering.
+
+If you've ever struggled to get an AI to follow a consistent process, or if your prompts have drifted so far from the original intent that debugging feels impossible—this tool is for you.
+
+---
+
 Build structured, interpretable AI workflow workspaces and invokable agents from one command.
 
 workspace-maxxing is an npx-installable CLI + skill package that helps you:
@@ -204,4 +216,4 @@ npx --yes --package ./workspace-maxxing-<version>.tgz workspace-maxxing install
 
 ## License
 
-MIT © [Eric Julian Deguzman](https://github.com/ericjdz)
+MIT
