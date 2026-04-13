@@ -1,13 +1,19 @@
 ---
 name: workspace-maxxing
-description: "Autonomously creates, validates, and improves ICM-compliant workspaces using batched parallel sub-agents. Use when user asks to 'build a workspace', 'create a workflow', 'automate a process', 'improve this workspace', 'validate this workspace', 'iterate on this workspace', or 'run test cases'."
+description: "Autonomously creates, validates, and improves ICM-compliant workspaces using batched parallel sub-agents. Use when user asks to 'build a workspace', 'create a workflow', 'automate a process', 'improve this workspace', 'validate this workspace', 'iterate on this workspace', 'run test cases', or 'create an agent'."
 ---
 
 # Workspace-Maxxing Skill
 
 ## Overview
 
-Autonomous workflow system that creates, validates, and improves ICM-compliant workspaces through phased execution, batched parallel sub-agent iteration, and condition-driven improvement loops.
+This is an **AI agent skill** that creates ICM-compliant workspaces with invokable agents. 
+
+**User Flow:**
+1. Install: `npx workspace-maxxing install` 
+2. Invoke: `@workspace-maxxing` in your AI agent
+3. Request: "Create a daily digest workspace" (or similar)
+4. The skill builds: ICM workspace + invokable agent
 
 ## When to Use
 
@@ -16,6 +22,162 @@ Autonomous workflow system that creates, validates, and improves ICM-compliant w
 - User asks for workspace architecture or structure design
 - User asks to assess or install tools for a workspace
 - User asks to run test cases against a workspace
+- **User asks to create an agent for a specific task** (e.g., "create a daily digest agent", "make a news aggregator agent")
+
+## User Commands (to the AI agent)
+
+When you invoke `@workspace-maxxing`, you can ask:
+
+| Request | What Happens |
+|---------|-------------|
+| "Build a workspace for X" | Creates ICM workspace with X workflow |
+| "Create an agent for Y" | Creates invokable @agent for Y task |
+| "Validate my workspace" | Checks ICM compliance |
+| "Improve my workspace" | Runs autonomous iteration |
+| "Add tools for Z" | Uses tooling sub-skill to install tools |
+
+**IMPORTANT - Tool Discovery Before Agent Delivery:**
+
+When creating ANY agent, ALWAYS do this FIRST:
+
+1. **Check native tools** - What capabilities does the AI agent already have?
+   - Playwright, puppeteer for browser automation?
+   - Curl, wget for HTTP requests?
+   - File system access?
+   - Database connections?
+
+2. **Verify tool accessibility** - Run a simple test to confirm tools work:
+   ```
+   Test: Can you make a simple HTTP request?
+   Test: Can you list files in the current directory?
+   Test: Can you execute a simple script?
+   ```
+
+3. **Install missing tools** - If native tools are insufficient:
+   - Use `/skill tooling` to install MCP servers
+   - Use `npm install` for CLI tools
+   - Document installed tools in `00-meta/tools.md`
+
+4. **Include tool instructions in agent prompts** - The created agent must know:
+   - What tools are available
+   - How to use them
+   - Any rate limits or constraints
+
+The skill will then execute the appropriate phases internally.
+
+## Tool Discovery & Agent Harness
+
+This skill is designed to **fully utilize its agent harness**. When running:
+
+### 1. Tool Discovery
+
+At the start of execution (especially during RESEARCH or ARCHITECTURE phases):
+- Scan available tools in the workspace (check `00-meta/tools.md` or `tools/` directory)
+- Look for MCP tools that could assist with the workflow
+- Use the **tooling** sub-skill to assess and install needed tools: `/skill tooling --workspace ./workspace`
+- Tools should be leveraged to enhance research, validation, and iteration
+
+### 2. Sub-Skill Invocation
+
+All sub-skills are invokable via **slash command** in your AI agent session:
+
+| Command | Sub-Skill | Purpose |
+|---------|-----------|---------|
+| `/skill research` | `research` | Conduct research phase |
+| `/skill architecture` | `architecture` | Design workspace architecture |
+| `/skill validation` | `validation` | Validate workspace ICM compliance |
+| `/skill iteration` | `iteration` | Run improvement iteration |
+| `/skill testing` | `testing` | Generate and run tests |
+| `/skill tooling` | `tooling` | Assess and install tools |
+| `/skill prompt-engineering` | `prompt-engineering` | Improve prompt quality |
+| `/skill worker` | `worker` | Execute worker task |
+| `/skill fixer` | `fixer` | Fix failing test cases |
+
+**To invoke a sub-skill**, use the dispatch script:
+```bash
+node skills/dispatch.ts --skill <sub-skill-name> --workspace ./workspace
+```
+
+Or if your agent supports slash commands:
+```
+/skill research --workspace ./workspace
+```
+
+### 3. Full Agent Harness Usage
+
+This skill provides a complete agent development harness:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ workspace-maxxing                                              │
+├─────────────────────────────────────────────────────────────────┤
+│  TOOLS: Look for available tools, install via tooling skill    │
+│    ↓                                                            │
+│  RESEARCH: Use /skill research to gather requirements         │
+│    ↓                                                            │
+│  ARCHITECTURE: Use /skill architecture to design structure    │
+│    ↓                                                            │
+│  BUILD: Use scaffold.ts to create workspace                   │
+│    ↓                                                            │
+│  VALIDATE: Use /skill validation to check ICM compliance     │
+│    ↓                                                            │
+│  ITERATE: Use /skill iteration for autonomous improvement     │
+│    ↓                                                            │
+│  TOOLING: Use /skill tooling to add more tools                 │
+│    ↓                                                            │
+│  DELIVER: Complete workspace with validated agents            │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Never skip sub-skills** - each one contributes to a robust workspace.
+
+## Agent Creation Workflow
+
+When you invoke `workspace-maxxing` with a request to create an agent (e.g., "create a lead scraping agent"), follow this flow:
+
+```
+1. Parse the request to extract the agent purpose (e.g., "Lead Scraper")
+2. DISCOVER TOOLS:
+   - Check what native tools are available in the AI agent (playwright, puppeteer, curl, etc.)
+   - Verify tool accessibility by running a simple test
+   - If native tools are insufficient, use tooling sub-skill to install MCPs or CLI tools
+   - Document tools in 00-meta/tools.md
+3. Create ICM workspace structure (SYSTEM.md, CONTEXT.md, stage folders)
+4. Create invokable agent in .agents/skills/@<purpose>/
+   - Include tool usage instructions in the agent prompts
+5. Run self-improvement loop on the agent
+   - Generate test cases (edge, empty, varied inputs)
+   - Validate agent handling
+   - Score robustness (0-100)
+   - If score < 85: improve prompts, retry
+   - Repeat until score >= 85 or max iterations (3)
+6. Install agent for platform (OpenCode/Claude/Copilot/Gemini)
+7. Deliver workspace with robust agent
+```
+
+### Agent Creation with Tool Discovery Example
+
+User: "Create an agent that scrapes internet data for leads"
+
+```
+-> Extract purpose: "Lead Scraper"
+-> DISCOVER TOOLS:
+   - Check: Does agent have playwright? → Yes, test it works
+   - Check: Does agent have curl/wget? → Yes, verify accessible
+   - Check: Any MCP servers for scraping? → No, need to install
+   - Action: Run tooling sub-skill to install puppeteer or similar
+   - Verify: Test the tool with a simple request
+-> Create workspace with stages: 01-input, 02-process, 03-output
+-> Create agent: @lead-scraper with tool instructions in prompts
+-> Run iteration:
+   - Test: scraping a page -> works
+   - Test: handling empty pages -> handles gracefully
+   - Test: rate limiting -> respects limits
+   - Score >= 85? Yes -> deliver
+-> Agent is ready to invoke with @lead-scraper
+```
+
+**Tool Discovery is MANDATORY** - always check available tools, verify accessibility, and install missing tools before delivering the agent.
 
 ## When Not to Use
 
@@ -27,6 +189,7 @@ Autonomous workflow system that creates, validates, and improves ICM-compliant w
 
 NO BUILD WITHOUT PLAN
 NO PLAN WITHOUT RESEARCH
+NO TOOL DISCOVERY BEFORE AGENT DELIVERY
 NO IMPROVEMENT WITHOUT VALIDATION
 NO COMPLETION CLAIM WITHOUT VERIFICATION
 NO PRODUCT IMPLEMENTATION INSIDE WORKSPACE BUILDING MODE
@@ -107,6 +270,25 @@ node scripts/orchestrator.ts --workspace ./workspace --batch-size 3 --score-thre
 - Use telemetry artifacts under `.agents/iteration/runs/` to diagnose command/rendering or payload issues.
 
 ## Sub-Skill Dispatch
+
+**All sub-skills are invokable via slash command in your AI agent session:**
+
+| Command | Sub-Skill | Purpose |
+|---------|-----------|---------|
+| `/skill research` | `research` | Conduct research phase |
+| `/skill architecture` | `architecture` | Design workspace architecture |
+| `/skill validation` | `validation` | Validate workspace ICM compliance |
+| `/skill iteration` | `iteration` | Run improvement iteration |
+| `/skill testing` | `testing` | Generate and run tests |
+| `/skill tooling` | `tooling` | Assess and install tools |
+| `/skill prompt-engineering` | `prompt-engineering` | Improve prompt quality |
+| `/skill worker` | `worker` | Execute worker task |
+| `/skill fixer` | `fixer` | Fix failing test cases |
+
+**To invoke a sub-skill**, use the dispatch script:
+```bash
+node skills/dispatch.ts --skill <sub-skill-name> --workspace ./workspace
+```
 
 | Condition | Sub-Skill | Command |
 |-----------|-----------|---------|

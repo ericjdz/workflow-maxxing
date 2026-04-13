@@ -97,10 +97,17 @@ export async function installSkill(
       copyDirSync(scriptsSrc, scriptsDest);
     }
 
-    // Copy skills/ sub-directory for sub-skill invocation
+    // Copy skills/ to PROJECT-LEVEL .agents/skills/ (not inside workspace-maxxing)
+    // This makes sub-skills invokable when using workspace-maxxing skill
     const skillsSrc = path.join(templatesDir, '.workspace-templates', 'skills');
+    const projectSkillsDir = path.join(projectRoot, '.agents', 'skills');
     if (fs.existsSync(skillsSrc)) {
-      const skillsDest = path.join(skillDir, 'skills');
+      copyDirSync(skillsSrc, projectSkillsDir);
+    }
+
+    // Also copy to workspace-maxxing/skills/ for reference (legacy)
+    const skillsDest = path.join(skillDir, 'skills');
+    if (fs.existsSync(skillsSrc)) {
       copyDirSync(skillsSrc, skillsDest);
     }
 
