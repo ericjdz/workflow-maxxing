@@ -45,7 +45,7 @@ Use workspace-maxxing when you want workflows that are easier to debug, review, 
 
 ## Methodology Basis (ICM)
 
-This project is based in part on Interpratable Context Methodology (ICM), also referred to as Interpretable Context Methodology, including folder-structure conventions such as numbered stage folders, stage contracts, selective context loading, and file-based handoffs.
+This project is based in part on Interpratable Context Methodology (ICM) including folder-structure conventions such as numbered stage folders, stage contracts, selective context loading, and file-based handoffs.
 
 Attribution:
 
